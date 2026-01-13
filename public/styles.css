@@ -1021,3 +1021,230 @@ header h1 {
     transform: scale(1.6);
     transform-origin: center;
 }
+
+/* ============================================
+   RESPONSIVE - MOBILE STYLES
+   ============================================ */
+
+/* Tablet e schermi medi */
+@media (max-width: 1024px) {
+    .sidebar {
+        width: 240px;
+    }
+    
+    .books-list.grid-view {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    }
+}
+
+/* Mobile large */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+    
+    .container {
+        border-radius: 5px;
+    }
+    
+    header h1 {
+        font-size: 1.8em;
+    }
+    
+    .main-content {
+        flex-direction: column;
+    }
+    
+    .sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 2px solid #e9ecef;
+        max-height: none;
+    }
+    
+    .filter-section h2 {
+        font-size: 1.2em;
+    }
+    
+    .content-area {
+        padding: 15px;
+    }
+    
+    .books-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+    }
+    
+    .view-controls {
+        justify-content: center;
+    }
+    
+    .stats-section {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .books-list.grid-view {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 10px;
+    }
+    
+    .book-item {
+        padding: 10px;
+    }
+    
+    .pagination {
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+    }
+    
+    .pagination-btn {
+        padding: 6px 10px;
+        font-size: 0.85em;
+    }
+    
+    .page-input {
+        width: 50px;
+        padding: 6px;
+    }
+    
+    .items-per-page-selector {
+        justify-content: center;
+    }
+    
+    /* Book detail mobile */
+    .detail-top-nav {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+    
+    .detail-nav-buttons {
+        justify-content: space-between;
+    }
+    
+    .book-detail-content {
+        padding: 15px;
+    }
+    
+    .detail-main-container {
+        flex-direction: column;
+    }
+    
+    .detail-cover-image img {
+        max-width: 200px;
+    }
+    
+    .detail-row {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .detail-label {
+        width: 100%;
+        font-weight: 700;
+    }
+    
+    /* Modal mobile */
+    .modal-content {
+        width: 95%;
+        margin: 20px auto;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    
+    .modal-body {
+        padding: 15px;
+    }
+    
+    .form-group {
+        margin-bottom: 12px;
+    }
+}
+
+/* Mobile small */
+@media (max-width: 480px) {
+    header h1 {
+        font-size: 1.5em;
+    }
+    
+    .content-area {
+        padding: 10px;
+    }
+    
+    .books-list.grid-view {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 8px;
+    }
+    
+    .book-item {
+        padding: 8px;
+    }
+    
+    .book-title {
+        font-size: 0.85em;
+    }
+    
+    .book-author {
+        font-size: 0.8em;
+    }
+    
+    .book-meta {
+        font-size: 0.75em;
+    }
+    
+    .pagination-btn {
+        padding: 5px 8px;
+        font-size: 0.8em;
+    }
+    
+    .pagination-info {
+        font-size: 0.9em;
+    }
+    
+    .detail-nav-btn {
+        padding: 6px 10px;
+        font-size: 0.85em;
+    }
+    
+    .btn-back {
+        padding: 6px 10px;
+        font-size: 0.85em;
+    }
+    
+    .detail-header h2 {
+        font-size: 1.5em;
+    }
+    
+    .detail-cover-image img {
+        max-width: 150px;
+    }
+    
+    .book-actions {
+        flex-direction: column;
+    }
+    
+    .btn-edit {
+        width: 100%;
+    }
+}
+
+/* Touch-friendly enhancements */
+@media (hover: none) and (pointer: coarse) {
+    .btn-primary,
+    .btn-secondary,
+    .btn-back,
+    .detail-nav-btn,
+    .pagination-btn,
+    .book-item {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    .view-btn {
+        min-width: 44px;
+        min-height: 44px;
+    }
+}
