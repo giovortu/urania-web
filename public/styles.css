@@ -217,6 +217,30 @@ header h1 {
     color: #333;
 }
 
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.pagination-items-select {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.pagination-items-select label {
+    margin: 0;
+    white-space: nowrap;
+}
+
+.pagination-items-select select {
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
 .view-toggle {
     display: flex;
     gap: 10px;

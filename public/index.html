@@ -66,30 +66,32 @@
                 <section id="books-list-section" class="books-section">
                     <div class="books-header">
                         <h2>Lista Libri</h2>
-                        <div class="view-toggle">
-                            <button id="view-list" class="view-btn active" title="Vista Lista">≡</button>
-                            <button id="view-grid" class="view-btn" title="Vista Griglia">⊞</button>
+                        <div class="header-controls">
+                            <div class="pagination-items-select">
+                                <label for="items-per-page">Libri per pagina:</label>
+                                <select id="items-per-page" class="items-select">
+                                    <option value="4">4</option>
+                                    <option value="8">8</option>
+                                    <option value="12" selected>12</option>
+                                    <option value="16">16</option>
+                                    <option value="20">20</option>
+                                    <option value="24">24</option>
+                                    <option value="32">32</option>
+                                    <option value="40">40</option>
+                                    <option value="48">48</option>
+                                </select>
+                            </div>
+                            <div class="view-toggle">
+                                <button id="view-list" class="view-btn active" title="Vista Lista">≡</button>
+                                <button id="view-grid" class="view-btn" title="Vista Griglia">⊞</button>
+                            </div>
                         </div>
                     </div>
                     
                     <!-- Top Pagination -->
                     <div id="pagination-top" class="pagination">
-                        <div class="pagination-items-select">
-                            <label for="items-per-page">Libri per pagina:</label>
-                            <select id="items-per-page" class="items-select">
-                                <option value="4">4</option>
-                                <option value="8">8</option>
-                                <option value="12" selected>12</option>
-                                <option value="16">16</option>
-                                <option value="20">20</option>
-                                <option value="24">24</option>
-                                <option value="32">32</option>
-                                <option value="40">40</option>
-                                <option value="48">48</option>
-                            </select>
-                        </div>
                         <button id="first-page-top" class="pagination-btn" title="Prima pagina">⏮</button>
-                        <button id="prev-page-top" class="pagination-btn" title="Pagina precedente">← Precedente</button>
+                        <button id="prev-page-top" class="pagination-btn" title="Pagina precedente">◀</button>
                         
                         <div class="pagination-info">
                             <input type="number" id="page-input-top" class="page-input" min="1" value="1">
@@ -97,7 +99,7 @@
                             <span id="total-pages-top">1</span>
                         </div>
                         
-                        <button id="next-page-top" class="pagination-btn" title="Pagina successiva">Successivo →</button>
+                        <button id="next-page-top" class="pagination-btn" title="Pagina successiva">▶</button>
                         <button id="last-page-top" class="pagination-btn" title="Ultima pagina">⏭</button>
                     </div>
                     
@@ -106,7 +108,7 @@
                     <!-- Bottom Pagination -->
                     <div id="pagination" class="pagination">
                         <button id="first-page" class="pagination-btn" title="Prima pagina">⏮</button>
-                        <button id="prev-page" class="pagination-btn" title="Pagina precedente">← Precedente</button>
+                        <button id="prev-page" class="pagination-btn" title="Pagina precedente">◀</button>
                         
                         <div class="pagination-info">
                             <input type="number" id="page-input" class="page-input" min="1" value="1">
@@ -114,7 +116,7 @@
                             <span id="total-pages">1</span>
                         </div>
                         
-                        <button id="next-page" class="pagination-btn" title="Pagina successiva">Successivo →</button>
+                        <button id="next-page" class="pagination-btn" title="Pagina successiva">▶</button>
                         <button id="last-page" class="pagination-btn" title="Ultima pagina">⏭</button>
                     </div>
                 </section>
@@ -124,8 +126,8 @@
                     <div class="detail-top-nav">
                         <button id="back-btn" class="btn-back">← Indietro</button>
                         <div class="detail-nav-buttons">
-                            <button id="prev-book-btn" class="detail-nav-btn prev-btn" title="Libro precedente">← Precedente</button>
-                            <button id="next-book-btn" class="detail-nav-btn next-btn" title="Libro successivo">Successivo →</button>
+                            <button id="prev-book-btn" class="detail-nav-btn prev-btn" title="Libro precedente">◀</button>
+                            <button id="next-book-btn" class="detail-nav-btn next-btn" title="Libro successivo">▶</button>
                         </div>
                     </div>
                     <div id="book-detail-content" class="book-detail-content"></div>
