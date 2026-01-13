@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestione Libri - Urania</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📚 Gestione Libri Urania</h1>
+        </header>
+
+        <div class="main-content">
+            <!-- Sidebar Filtri -->
+            <aside class="sidebar">
+                <div class="filter-section">
+                    <h2>Filtri</h2>
+                    
+                    <div class="filter-group">
+                        <label for="collana-filter">Collana:</label>
+                        <select id="collana-filter">
+                            <option value="">Tutte le collane</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>
+                            <input type="checkbox" id="owned-filter"> Posseduti
+                        </label>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>
+                            <input type="checkbox" id="read-filter"> Letti
+                        </label>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>
+                            <input type="checkbox" id="digital-filter"> Digitali
+                        </label>
+                    </div>
+
+                    <button id="reset-filters" class="btn-secondary">Resetta Filtri</button>
+                </div>
+
+                <div class="stats-section">
+                    <h3>Statistiche</h3>
+                    <p>Totale libri: <span id="total-books">0</span></p>
+                    <p>Posseduti: <span id="total-owned">0</span></p>
+                    <p>Letti: <span id="total-read">0</span></p>
+                    <button id="hard-reload-btn" class="btn-secondary" style="width: 100%; margin-top: 15px;">⟳ Hard Reload</button>
+                </div>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="content-area">
+                <!-- Book List -->
+                <section id="books-list-section" class="books-section">
+                    <div class="books-header">
+                        <h2>Lista Libri</h2>
+                        <div class="view-toggle">
+                            <button id="view-list" class="view-btn active" title="Vista Lista">≡</button>
+                            <button id="view-grid" class="view-btn" title="Vista Griglia">⊞</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Top Pagination -->
+                    <div id="pagination-top" class="pagination">
+                        <div class="pagination-items-select">
+                            <label for="items-per-page">Libri per pagina:</label>
+                            <select id="items-per-page" class="items-select">
+                                <option value="4">4</option>
+                                <option value="8">8</option>
+                                <option value="12" selected>12</option>
+                                <option value="16">16</option>
+                                <option value="20">20</option>
+                                <option value="24">24</option>
+                                <option value="32">32</option>
+                                <option value="40">40</option>
+                                <option value="48">48</option>
+                            </select>
+                        </div>
+                        <button id="first-page-top" class="pagination-btn" title="Prima pagina">⏮</button>
+                        <button id="prev-page-top" class="pagination-btn" title="Pagina precedente">← Precedente</button>
+                        
+                        <div class="pagination-info">
+                            <input type="number" id="page-input-top" class="page-input" min="1" value="1">
+                            <span> / </span>
+                            <span id="total-pages-top">1</span>
+                        </div>
+                        
+                        <button id="next-page-top" class="pagination-btn" title="Pagina successiva">Successivo →</button>
+                        <button id="last-page-top" class="pagination-btn" title="Ultima pagina">⏭</button>
+                    </div>
+                    
+                    <div id="books-list" class="books-list"></div>
+                    
+                    <!-- Bottom Pagination -->
+                    <div id="pagination" class="pagination">
+                        <button id="first-page" class="pagination-btn" title="Prima pagina">⏮</button>
+                        <button id="prev-page" class="pagination-btn" title="Pagina precedente">← Precedente</button>
+                        
+                        <div class="pagination-info">
+                            <input type="number" id="page-input" class="page-input" min="1" value="1">
+                            <span> / </span>
+                            <span id="total-pages">1</span>
+                        </div>
+                        
+                        <button id="next-page" class="pagination-btn" title="Pagina successiva">Successivo →</button>
+                        <button id="last-page" class="pagination-btn" title="Ultima pagina">⏭</button>
+                    </div>
+                </section>
+
+                <!-- Book Detail -->
+                <section id="book-detail-section" class="book-detail" style="display: none;">
+                    <div class="detail-top-nav">
+                        <button id="back-btn" class="btn-back">← Indietro</button>
+                        <div class="detail-nav-buttons">
+                            <button id="prev-book-btn" class="detail-nav-btn prev-btn" title="Libro precedente">← Precedente</button>
+                            <button id="next-book-btn" class="detail-nav-btn next-btn" title="Libro successivo">Successivo →</button>
+                        </div>
+                    </div>
+                    <div id="book-detail-content" class="book-detail-content"></div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="edit-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Modifica Libro</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-form">
+                    <div class="form-group">
+                        <label for="edit-title-ita">Titolo Italiano:</label>
+                        <input type="text" id="edit-title-ita" name="title_ita">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit-title-orig">Titolo Originale:</label>
+                        <input type="text" id="edit-title-orig" name="title_orig">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit-author">Autore:</label>
+                        <input type="text" id="edit-author" name="author">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit-date-pub">Data Pubblicazione:</label>
+                        <input type="date" id="edit-date-pub" name="date_pub">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit-cover-author">Autore Copertina:</label>
+                        <input type="text" id="edit-cover-author" name="cover_author">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit-editore">Editore:</label>
+                        <input type="text" id="edit-editore" name="editore">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit-collana">Collana:</label>
+                        <input type="text" id="edit-collana" name="collana">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit-synopsis">Sinossi:</label>
+                        <textarea id="edit-synopsis" name="synopsis" rows="4"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit-comment">Commento:</label>
+                        <textarea id="edit-comment" name="comment" rows="3"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Valutazione (stelle):</label>
+                        <div id="edit-stars-widget" class="stars-widget"></div>
+                        <input type="hidden" id="edit-stars" name="stars" value="0">
+                    </div>
+
+                    <div class="form-group form-checkbox">
+                        <label for="edit-owned">
+                            <input type="checkbox" id="edit-owned" name="owned">
+                            In collezione
+                        </label>
+                    </div>
+
+                    <div class="form-group form-checkbox">
+                        <label for="edit-read">
+                            <input type="checkbox" id="edit-read" name="read">
+                            Letto
+                        </label>
+                    </div>
+
+                    <div class="form-group form-checkbox">
+                        <label for="edit-digital">
+                            <input type="checkbox" id="edit-digital" name="digital">
+                            Digitale
+                        </label>
+                    </div>
+
+                    <div class="form-group form-checkbox">
+                        <label for="edit-reprint">
+                            <input type="checkbox" id="edit-reprint" name="reprint">
+                            Ristampa
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button id="save-btn" class="btn-primary">Salva</button>
+                <button id="cancel-btn" class="btn-secondary">Annulla</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
