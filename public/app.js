@@ -28,6 +28,9 @@ const bookDetailSection = document.getElementById('book-detail-section');
 const backBtn = document.getElementById('back-btn');
 const editModal = document.getElementById('edit-modal');
 const editForm = document.getElementById('edit-form');
+const sidebar = document.getElementById('sidebar');
+const menuToggle = document.getElementById('menu-toggle');
+const closeSidebar = document.getElementById('close-sidebar');
 const saveBtn = document.getElementById('save-btn');
 const cancelBtn = document.getElementById('cancel-btn');
 const closeModalBtn = document.querySelector('.close-modal');
@@ -111,7 +114,39 @@ document.addEventListener('DOMContentLoaded', async () => {
     await Promise.all([loadBooks(), loadCollane()]);
     restoreState();
     attachEventListeners();
+    attachMobileMenuListeners();
 });
+
+function attachMobileMenuListeners() {
+    // Menu toggle button
+    if (menuToggle) {
+        menuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+        });
+    }
+    
+    // Close sidebar button
+    if (closeSidebar) {
+        closeSidebar.addEventListener('click', () => {
+            sidebar.classList.remove('open');
+        });
+    }
+    
+    // Close sidebar when clicking on a filter
+    if (sidebar) {
+        sidebar.addEventListener('click', (e) => {
+            // Check if it's not the close button
+            if (e.target.id !== 'close-sidebar' && !e.target.closest('.close-btn')) {
+                // Close on small screens (mobile)
+                if (window.innerWidth <= 768) {
+                    setTimeout(() => {
+                        sidebar.classList.remove('open');
+                    }, 100);
+                }
+            }
+        });
+    }
+}
 
 function attachEventListeners() {
     searchInput.addEventListener('input', (e) => {
