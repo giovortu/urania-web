@@ -9,11 +9,13 @@ let filters = {
     collana: '',
     owned: false,
     read: false,
-    digital: false
+    digital: false,
+    search: ''
 };
 
 // DOM Elements
 const booksList = document.getElementById('books-list');
+const searchInput = document.getElementById('search-input');
 const collanaFilter = document.getElementById('collana-filter');
 const ownedFilter = document.getElementById('owned-filter');
 const readFilter = document.getElementById('read-filter');
@@ -112,6 +114,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function attachEventListeners() {
+    searchInput.addEventListener('input', (e) => {
+        filters.search = e.target.value;
+        currentPage = 1; // Reset to first page when searching
+        pageInput.value = currentPage;
+        pageInputTop.value = currentPage;
+        saveState();
+        applyFilters();
+    });
     collanaFilter.addEventListener('change', () => {
         saveState();
         applyFilters();
@@ -210,6 +220,7 @@ async function loadBooks() {
             page: currentPage,
             limit: itemsPerPage,
             _ts: Date.now(), // cache buster per evitare risposte stale
+            ...(filters.search && { search: filters.search }),
             ...(filters.collana && { collana: filters.collana }),
             ...(filters.owned && { owned: 'true' }),
             ...(filters.read && { read: 'true' }),
@@ -298,7 +309,8 @@ function applyFilters() {
         collana: collanaFilter.value,
         owned: ownedFilter.checked,
         read: readFilter.checked,
-        digital: digitalFilter.checked
+        digital: digitalFilter.checked,
+        search: filters.search
     };
 
     currentPage = 1;
@@ -309,6 +321,7 @@ function applyFilters() {
 
 // Reset filters
 function resetFilters() {
+    searchInput.value = '';
     collanaFilter.value = '';
     ownedFilter.checked = false;
     readFilter.checked = false;

@@ -3,9 +3,10 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
-const PORT = 3000;
+const PORT = 3100;
 
 // Middleware
 app.use(cors());
@@ -13,8 +14,9 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
-// Database setup
-const dbPath = path.join(__dirname, 'books.db');
+// Database setup - read path from configuration file
+const configPath = path.join(__dirname, 'dbpath.conf');
+const dbPath = fs.readFileSync(configPath, 'utf8').trim();
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error('Database connection error:', err);
@@ -32,6 +34,7 @@ app.get('/api/books', (req, res) => {
   
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 12;
+  const search = req.query.search;
   const collana = req.query.collana;
   const owned = req.query.owned;
   const read = req.query.read;
@@ -40,6 +43,11 @@ app.get('/api/books', (req, res) => {
   let whereConditions = [];
   let params = [];
   
+  if (search) {
+    whereConditions.push('(title_ita COLLATE NOCASE LIKE ? OR title_orig COLLATE NOCASE LIKE ?)');
+    params.push(`%${search}%`, `%${search}%`);
+    console.log(`[SEARCH] Query: "${search}"`);
+  }
   if (collana) {
     whereConditions.push('collana = ?');
     params.push(collana);
