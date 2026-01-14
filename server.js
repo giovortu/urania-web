@@ -29,12 +29,27 @@ app.use(express.static('public'));
 
 // Database setup - read path from configuration file
 const configPath = path.join(__dirname, 'dbpath.conf');
-const dbPath = fs.readFileSync(configPath, 'utf8').trim();
-const db = new sqlite3.Database(dbPath, (err) => {
+const dbPathRaw = fs.readFileSync(configPath, 'utf8').trim();
+// Resolve to absolute path if relative
+const dbPath = path.isAbsolute(dbPathRaw) ? dbPathRaw : path.join(__dirname, dbPathRaw);
+
+console.log('Database path:', dbPath);
+console.log('Working directory:', process.cwd());
+console.log('__dirname:', __dirname);
+
+const db = new sqlite3.Database(dbPath, sqlite3.OPEN_READWRITE, (err) => {
   if (err) {
     console.error('Database connection error:', err);
+    console.error('Failed to open database at:', dbPath);
+    process.exit(1);
   } else {
     console.log('Connected to SQLite database');
+    
+    // Check write permissions
+    db.run('PRAGMA query_only', [], (err, row) => {
+      if (err) console.error('Error checking query_only pragma:', err);
+    });
+    
     initializeDatabase();
   }
 });
