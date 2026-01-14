@@ -150,6 +150,12 @@ header h1 {
 }
 
 /* Buttons */
+
+.red {
+    background-color: red !important;
+    color: white !important;
+}
+
 .btn-primary,
 .btn-secondary,
 .btn-back {

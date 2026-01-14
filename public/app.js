@@ -50,6 +50,7 @@ const lastPageBtnTop = document.getElementById('last-page-top');
 const pageInputTop = document.getElementById('page-input-top');
 const totalPagesSpanTop = document.getElementById('total-pages-top');
 const itemsPerPageSelect = document.getElementById('items-per-page');
+const reloadBtn = document.getElementById('reload-btn');
 const hardReloadBtn = document.getElementById('hard-reload-btn');
 
 // State management for localStorage
@@ -235,8 +236,21 @@ function attachEventListeners() {
         }
     });
     
-    // Hard reload button
+reloadBtn.addEventListener('click', async () => {
+        await loadBooks();
+        await loadCollane(true);
+        restoreState();
+        showSuccess('Database ricaricato correttamente');
+    });
+
+
+    // Hard reload button: clear disk cache + local state
     hardReloadBtn.addEventListener('click', async () => {
+        try {
+            await fetch('/api/cache', { method: 'DELETE' });
+        } catch (err) {
+            console.error('Errore durante la cancellazione cache su disco', err);
+        }
         localStorage.removeItem('collaneCache');
         localStorage.removeItem('bookAppState');
         allBooks = [];
@@ -244,7 +258,7 @@ function attachEventListeners() {
         await loadBooks();
         await loadCollane(true);
         restoreState();
-        showSuccess('Database ricaricato correttamente');
+        showSuccess('Hard reload completato con successo');
     });
 }
 
