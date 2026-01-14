@@ -161,8 +161,6 @@ function clearBookCache(bookId) {
 
 // Pre-cache adjacent images (look-ahead and look-behind) using hash-based validation
 function preCacheAdjacentImages(bookId, filters = {}, lookAhead = 2, lookBehind = 2) {
-  console.log(`[PRECACHE] Starting pre-cache for book ${bookId}`);
-  
   // Build where conditions for prev books (same as /prev endpoint)
   let behindConditions = ['b1.id = ?'];
   let behindParams = [bookId];
@@ -247,25 +245,20 @@ function preCacheAdjacentImages(bookId, filters = {}, lookAhead = 2, lookBehind 
             
             if (cachedHash === null) {
               // Cache miss: reload from DB
-              console.log(`[CACHE] MISS - cover for book ${book.id}`);
               db.get('SELECT cover_image FROM books WHERE id = ?', [book.id], (err, row) => {
                 if (row && row.cover_image) {
-                  console.log(`[CACHE] DOWNLOAD - cover from DB for book ${book.id}`);
                   saveCacheImage(book.id, 'cover', row.cover_image);
                 }
               });
             } else if (cachedHash !== book.cover_hash) {
               // Hash mismatch: image changed, reload from DB
-              console.log(`[CACHE] MISMATCH - cover hash for book ${book.id} (cached: ${cachedHash.substring(0, 8)}... vs db: ${book.cover_hash.substring(0, 8)}...)`);
               db.get('SELECT cover_image FROM books WHERE id = ?', [book.id], (err, row) => {
                 if (row && row.cover_image) {
-                  console.log(`[CACHE] DOWNLOAD - cover from DB for book ${book.id} (hash changed)`);
                   saveCacheImage(book.id, 'cover', row.cover_image);
                 }
               });
             } else {
               // Cache hit: hash matches, skip
-              console.log(`[CACHE] HIT - cover for book ${book.id}`);
             }
           }
           
@@ -275,25 +268,20 @@ function preCacheAdjacentImages(bookId, filters = {}, lookAhead = 2, lookBehind 
             
             if (cachedHash === null) {
               // Cache miss: reload from DB
-              console.log(`[CACHE] MISS - synopsis for book ${book.id}`);
               db.get('SELECT synopsis_image FROM books WHERE id = ?', [book.id], (err, row) => {
                 if (row && row.synopsis_image) {
-                  console.log(`[CACHE] DOWNLOAD - synopsis from DB for book ${book.id}`);
                   saveCacheImage(book.id, 'synopsis', row.synopsis_image);
                 }
               });
             } else if (cachedHash !== book.synopsis_hash) {
               // Hash mismatch: image changed, reload from DB
-              console.log(`[CACHE] MISMATCH - synopsis hash for book ${book.id} (cached: ${cachedHash.substring(0, 8)}... vs db: ${book.synopsis_hash.substring(0, 8)}...)`);
               db.get('SELECT synopsis_image FROM books WHERE id = ?', [book.id], (err, row) => {
                 if (row && row.synopsis_image) {
-                  console.log(`[CACHE] DOWNLOAD - synopsis from DB for book ${book.id} (hash changed)`);
                   saveCacheImage(book.id, 'synopsis', row.synopsis_image);
                 }
               });
             } else {
               // Cache hit: hash matches, skip
-              console.log(`[CACHE] HIT - synopsis for book ${book.id}`);
             }
           }
         });
