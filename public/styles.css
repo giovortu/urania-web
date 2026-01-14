@@ -14,8 +14,10 @@ body {
 .container {
     max-width: 1400px;
     margin: 0 auto;
-    background: white;
+    background: transparent;
     border-radius: 10px;
+    border-width: 0px;
+
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
     overflow: hidden;
 }
@@ -23,7 +25,7 @@ body {
 header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 30px;
+    padding: 5px;
     text-align: center;
     display: flex;
     align-items: center;
@@ -230,6 +232,7 @@ header h1 {
     flex: 1;
     padding: 30px;
     overflow-y: auto;
+    background-color: #fdfdfd;
 }
 
 .books-section {
@@ -1094,11 +1097,12 @@ header h1 {
 /* Mobile large - Drawer menu */
 @media (max-width: 768px) {
     body {
-        padding: 10px;
+        padding: 0px;
     }
     
     .container {
         border-radius: 5px;
+        border-color: transparent;
     }
     
     header {
