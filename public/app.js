@@ -467,7 +467,7 @@ function createBookElement(book) {
     badges.className = 'book-badges';
 
     if (book.owned) {
-        badges.innerHTML += '<span class="badge owned">In collezione</span>';
+        badges.innerHTML += '<span class="badge owned">Nella collezione</span>';
     }
     if (book.read) {
         badges.innerHTML += '<span class="badge read">Letto</span>';
@@ -572,7 +572,7 @@ async function showBookDetail(bookId) {
                             <span class="detail-value">${formatStars(book.stars)}</span>
                         </div>
                         <div class="detail-row">
-                            <span class="detail-label">In collezione:</span>
+                            <span class="detail-label">Nella collezione:</span>
                             <span class="detail-value">${book.owned ? '✓ Sì' : '✗ No'}</span>
                         </div>
                         <div class="detail-row">
