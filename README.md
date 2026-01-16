@@ -1,6 +1,6 @@
-# Gestione Libri Urania - Applicazione Web
+# Gestione Libri - Applicazione Web
 
-Applicazione web Node.js per gestire un database SQLite di libri. Permette di visualizzare, filtrare e modificare i dati dei libri della collezione Urania.
+Applicazione web Node.js per gestire un database SQLite di libri. Permette di visualizzare, filtrare e modificare i dati della propria collezione di libri.
 
 ## Caratteristiche
 
@@ -38,7 +38,7 @@ Il server sarà disponibile a `http://localhost:3000`
 ## Struttura Progetto
 
 ```
-Urania_web/
+book-manager/
 ├── server.js              # Server Express.js
 ├── package.json          # Dipendenze del progetto
 ├── books.db             # Database SQLite

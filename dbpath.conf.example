@@ -1,8 +1,8 @@
 # Database Path Configuration
 # Set the absolute path to your SQLite database file
 # Example for Windows:
-# C:\Users\YourUsername\Documents\PlatformIO\Projects\Urania_web\books.db
+# C:\Users\YourUsername\Documents\PlatformIO\Projects\book-manager\books.db
 # Example for Linux/Mac:
-# /home/username/Documents/PlatformIO/Projects/Urania_web/books.db
+# /home/username/Documents/PlatformIO/Projects/book-manager/books.db
 
 /percorso/assoluto/al/tuo/books.db

@@ -37,7 +37,7 @@ Transforms the database from denormalized structure to normalized structure with
 
 ```bash
 # Make sure you're in the project root directory
-cd /path/to/urania-web
+cd /path/to/book-manager
 
 # Run the migration
 node tools/migrate_to_normalized_schema.js

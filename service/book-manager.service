@@ -1,18 +1,18 @@
 [Unit]
-Description=Urania Book Manager Web Service
+Description=Book Manager Web Service
 After=network.target
 
 [Service]
 Type=simple
 User=www-data
-WorkingDirectory=/opt/urania-web
+WorkingDirectory=/opt/book-manager
 Environment="NODE_ENV=production"
-ExecStart=/usr/bin/node /opt/urania-web/server.js
+ExecStart=/usr/bin/node /opt/book-manager/server.js
 Restart=always
 RestartSec=10
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=urania-web
+SyslogIdentifier=book-manager
 
 [Install]
 WantedBy=multi-user.target

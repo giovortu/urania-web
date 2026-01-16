@@ -1,4 +1,4 @@
-# API Documentation - Urania Web
+# API Documentation - Book Manager
 
 Documentazione completa delle API REST implementate nel server.
 
@@ -39,7 +39,7 @@ Recupera lista paginata di libri con filtri opzionali.
       "date_pub": "1980-01-01",
       "editore": "Mondadori",
       "editore_id": 1,
-      "collana": "Urania",
+      "collana": "Fantascienza",
       "collana_id": 5,
       "cover_author": "Karel Thole",
       "owned": 1,
@@ -293,7 +293,7 @@ Recupera lista di tutte le collane presenti nel database.
 [
   { 
     "id": 5, 
-    "nome": "Urania", 
+    "nome": "Fantascienza", 
     "editore_id": 1,
     "editore_nome": "Mondadori"
   },

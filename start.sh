@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Script to start the Urania Web Book Manager server
+# Script to start the Book Manager server
 
-echo "🚀 Starting Urania Book Manager..."
+echo "🚀 Starting Book Manager..."
 
 # Check if node_modules exists
 if [ ! -d "node_modules" ]; then

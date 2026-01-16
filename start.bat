@@ -1,7 +1,7 @@
 @echo off
-REM Script to start the Urania Web Book Manager server
+REM Script to start the Book Manager server
 
-echo 🚀 Starting Urania Book Manager...
+echo 🚀 Starting Book Manager...
 
 REM Check if node_modules exists
 if not exist "node_modules" (
