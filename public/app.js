@@ -13,6 +13,17 @@ let filters = {
     search: ''
 };
 
+// Funzione per normalizzare i caratteri accentati
+function normalizeSearchText(text) {
+    if (!text) return text;
+    return text
+        .replace(/[àá]/gi, (match) => match === match.toLowerCase() ? "a'" : "A'")
+        .replace(/[èé]/gi, (match) => match === match.toLowerCase() ? "e'" : "E'")
+        .replace(/[ìí]/gi, (match) => match === match.toLowerCase() ? "i'" : "I'")
+        .replace(/[òó]/gi, (match) => match === match.toLowerCase() ? "o'" : "O'")
+        .replace(/[ùú]/gi, (match) => match === match.toLowerCase() ? "u'" : "U'");
+}
+
 // DOM Elements
 const booksList = document.getElementById('books-list');
 const searchInput = document.getElementById('search-input');
@@ -154,7 +165,7 @@ function attachMobileMenuListeners() {
 
 function attachEventListeners() {
     searchInput.addEventListener('input', (e) => {
-        filters.search = e.target.value;
+        filters.search = normalizeSearchText(e.target.value);
         currentPage = 1; // Reset to first page when searching
         pageInput.value = currentPage;
         pageInputTop.value = currentPage;
