@@ -64,11 +64,10 @@ function processMerge(sourcePath, targetPath) {
   console.log('🔍 Ricerca libri danneggiati nel database target...\n');
 
   const query = `
-    SELECT id, number, title_ita, title_orig, author, editore, collana, date_pub
+    SELECT id, number, title_ita, title_orig, author, editore, collana, date_pub, owned, read, digital, stars
     FROM books
     WHERE (title_ita IS NULL OR title_ita = '')
-       OR (title_orig IS NULL OR title_orig = '')
-       OR (author IS NULL OR author = '')
+      AND (title_orig IS NULL OR title_orig = '')
   `;
 
   targetDb.all(query, [], (err, damagedBooks) => {
@@ -87,10 +86,10 @@ function processMerge(sourcePath, targetPath) {
     console.log(`⚠️  Trovati ${damagedBooks.length} libri danneggiati:\n`);
     
     damagedBooks.forEach((book, idx) => {
-      console.log(`   ${idx + 1}. ID: ${book.id}, Numero: ${book.number || 'N/A'}`);
-      console.log(`      Title ITA: "${book.title_ita || 'VUOTO'}"`);
+      console.log(`   ${idx + 1}. ID: ${book.id}, Numero: ${book.number || 'N/A'}`);      console.log(`      Title ITA: "${book.title_ita || 'VUOTO'}"`);
       console.log(`      Title ORIG: "${book.title_orig || 'VUOTO'}"`);
-      console.log(`      Author: "${book.author || 'VUOTO'}"\n`);
+      console.log(`      Author: "${book.author || 'VUOTO'}"`);
+      console.log(`      Owned: ${book.owned ? '✓' : '✗'}, Read: ${book.read ? '✓' : '✗'}, Stars: ${book.stars || 0}\n`);
     });
 
     console.log('🔄 Inizio recupero dati dal database source...\n');
@@ -109,7 +108,12 @@ function processMerge(sourcePath, targetPath) {
         editore = ?,
         collana = ?,
         synopsis = ?,
-        comment = ?
+        comment = ?,
+        owned = ?,
+        read = ?,
+        digital = ?,
+        reprint = ?,
+        stars = ?
       WHERE id = ?
     `);
 
@@ -140,6 +144,11 @@ function processMerge(sourcePath, targetPath) {
               sourceBook.collana,
               sourceBook.synopsis,
               sourceBook.comment,
+              sourceBook.owned,
+              sourceBook.read,
+              sourceBook.digital,
+              sourceBook.reprint,
+              sourceBook.stars,
               damaged.id,
               (err) => {
                 if (err) {
