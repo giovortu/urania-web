@@ -458,6 +458,11 @@ header h1 {
 
 .books-list.grid-view .book-author {
     min-height: 1.2em;
+    line-height: 1.2em;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 .book-meta {
