@@ -98,24 +98,19 @@ function restoreState() {
             currentPage = state.currentPage || 1;
             pageInput.value = currentPage;
             pageInputTop.value = currentPage;
-            
-            // Load books with restored filters and page
-            loadBooks();
         } catch (error) {
             console.error('Error restoring state:', error);
         }
-    } else {
-        // No saved state, just load the first page
-        loadBooks();
     }
 }
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', async () => {
-    await Promise.all([loadBooks(), loadCollane()]);
+    await loadCollane();
     restoreState();
     attachEventListeners();
     attachMobileMenuListeners();
+    await loadBooks();
 });
 
 function attachMobileMenuListeners() {
