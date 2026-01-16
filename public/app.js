@@ -509,6 +509,8 @@ function createBookElement(book) {
     }
     if (book.read) {
         badges.innerHTML += '<span class="badge read">Letto</span>';
+    } else {
+        badges.innerHTML += '<span class="badge not-read">Non letto</span>';
     }
     if (book.digital) {
         badges.innerHTML += '<span class="badge digital">Digitale</span>';
