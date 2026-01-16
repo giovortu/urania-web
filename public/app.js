@@ -797,7 +797,10 @@ async function saveInlineEdit(field, value) {
             body: JSON.stringify({ [field]: value })
         });
         
-        if (!response.ok) throw new Error('Failed to update book');
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+        }
         
         // Update local data
         const bookIndex = allBooks.findIndex(b => b.id === currentBookId);
@@ -813,7 +816,7 @@ async function saveInlineEdit(field, value) {
         showSuccess('Modifica salvata con successo');
     } catch (error) {
         console.error('Error saving inline edit:', error);
-        showError('Errore nel salvataggio della modifica');
+        showError('Errore nel salvataggio della modifica', error.message);
     } finally {
         // Hide loader
         loaderOverlay.style.display = 'none';
@@ -1407,7 +1410,7 @@ async function updateStats() {
 }
 
 // Error and success messages
-function showError(message) {
+function showError(message, details = null) {
     const notification = document.createElement('div');
     notification.style.cssText = `
         position: fixed;
@@ -1420,11 +1423,15 @@ function showError(message) {
         border: 1px solid #f5c6cb;
         z-index: 2000;
         animation: slideIn 0.3s ease;
+        max-width: 400px;
     `;
-    notification.textContent = message;
+    notification.innerHTML = `
+        <strong>${message}</strong>
+        ${details ? `<div style="margin-top: 8px; font-size: 0.9em; opacity: 0.9;">${details}</div>` : ''}
+    `;
     document.body.appendChild(notification);
 
-    setTimeout(() => notification.remove(), 4000);
+    setTimeout(() => notification.remove(), 6000);
 }
 
 function showSuccess(message) {
