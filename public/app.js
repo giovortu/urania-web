@@ -538,14 +538,12 @@ function createBookElement(book) {
     const badges = document.createElement('div');
     badges.className = 'book-badges';
 
-    if (book.owned) {
-        badges.innerHTML += '<span class="badge owned">Nella collezione</span>';
-    }
-    if (book.read) {
-        badges.innerHTML += '<span class="badge read">Letto</span>';
-    } else {
-        badges.innerHTML += '<span class="badge not-read">Non letto</span>';
-    }
+    // Icona collezione - sempre visibile
+    badges.innerHTML += `<span class="badge badge-icon owned ${!book.owned ? 'inactive' : ''}" title="${book.owned ? 'Nella collezione' : 'Non nella collezione'}">📚</span>`;
+    
+    // Icona letto - sempre visibile
+    badges.innerHTML += `<span class="badge badge-icon read ${!book.read ? 'inactive' : ''}" title="${book.read ? 'Letto' : 'Non letto'}">👁️</span>`;
+    
     if (book.digital) {
         badges.innerHTML += '<span class="badge digital">Digitale</span>';
     }
