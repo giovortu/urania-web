@@ -64,7 +64,7 @@ function processMerge(sourcePath, targetPath) {
   console.log('🔍 Ricerca libri danneggiati nel database target...\n');
 
   const query = `
-    SELECT id, number, title_ita, title_orig, author, editore, collana, date_pub, owned, read, digital, stars
+    SELECT id, number, title_ita, title_orig, author, editore, collana, date_pub, owned, read, digital, stars, cover_hash
     FROM books
     WHERE (title_ita IS NULL OR title_ita = '')
       AND (title_orig IS NULL OR title_orig = '')
@@ -118,8 +118,28 @@ function processMerge(sourcePath, targetPath) {
     `);
 
     damagedBooks.forEach((damaged) => {
-      // Cerca il libro corrispondente nel source
-      sourceDb.get('SELECT * FROM books WHERE id = ?', [damaged.id], (err, sourceBook) => {
+      // Cerca il libro corrispondente nel source usando numero + hash immagine
+      let searchQuery;
+      let searchParams;
+      
+      if (damaged.number && damaged.cover_hash) {
+        // Usa numero + hash per identificare univocamente il libro
+        searchQuery = 'SELECT * FROM books WHERE number = ? AND cover_hash = ?';
+        searchParams = [damaged.number, damaged.cover_hash];
+        console.log(`🔍 Cerco libro con numero ${damaged.number} e hash ${damaged.cover_hash.substring(0, 8)}...`);
+      } else if (damaged.number) {
+        // Usa solo numero se hash non disponibile
+        searchQuery = 'SELECT * FROM books WHERE number = ?';
+        searchParams = [damaged.number];
+        console.log(`🔍 Cerco libro con numero ${damaged.number} (no hash)...`);
+      } else {
+        // Fallback su ID
+        searchQuery = 'SELECT * FROM books WHERE id = ?';
+        searchParams = [damaged.id];
+        console.log(`🔍 Cerco libro con ID ${damaged.id} (no numero)...`);
+      }
+      
+      sourceDb.get(searchQuery, searchParams, (err, sourceBook) => {
         processed++;
 
         if (err) {
