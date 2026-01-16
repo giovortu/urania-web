@@ -595,7 +595,7 @@ function generateInlineStarsWidget(starsValue) {
 
 // Format stars with half stars
 function formatStars(starsValue) {
-    if (!starsValue) return 'Nessuna valutazione';
+    if (!starsValue) return '<span class="stars-display no-rating" title="Nessuna valutazione">⭐</span>';
     
     const stars = Math.min(5, parseFloat(starsValue) / 10);
     const fullStars = Math.floor(stars);
@@ -678,9 +678,8 @@ function createBookElement(book) {
     // Icona letto - sempre visibile
     badges.innerHTML += `<span class="badge badge-icon read ${!book.read ? 'inactive' : ''}" title="${book.read ? 'Letto' : 'Non letto'}">👁️</span>`;
     
-    if (book.digital) {
-        badges.innerHTML += '<span class="badge digital">Digitale</span>';
-    }
+    // Icona digitale - sempre visibile
+    badges.innerHTML += `<span class="badge badge-icon digital ${!book.digital ? 'inactive' : ''}" title="${book.digital ? 'Digitale' : 'Fisico'}">💾</span>`;
     // Mostra sempre il badge stelle, anche se vuoto
     badges.innerHTML += `<span class="badge stars">${formatStars(book.stars)}</span>`;
 
