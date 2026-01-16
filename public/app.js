@@ -106,6 +106,37 @@ function restoreState() {
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', async () => {
+    // Gestione della cronologia del browser
+    window.addEventListener('popstate', (event) => {
+        if (event.state) {
+            if (event.state.view === 'list') {
+                showBooksList(false);
+            } else if (event.state.view === 'detail' && event.state.bookId) {
+                showBookDetail(event.state.bookId, false);
+            }
+        } else {
+            // Nessuno stato, mostra la lista
+            showBooksList(false);
+        }
+    });
+    
+    // Imposta lo stato iniziale
+    const hash = window.location.hash;
+    if (hash.startsWith('#book/')) {
+        const bookId = parseInt(hash.split('/')[1]);
+        if (bookId) {
+            await loadCollane();
+            restoreState();
+            attachEventListeners();
+            attachMobileMenuListeners();
+            await loadBooks();
+            await showBookDetail(bookId, false);
+            return;
+        }
+    }
+    
+    // Caricamento normale
+    history.replaceState({ view: 'list' }, '', '#list');
     await loadCollane();
     restoreState();
     attachEventListeners();
@@ -635,8 +666,14 @@ function switchViewMode(mode) {
 }
 
 // Show book detail
-async function showBookDetail(bookId) {
+async function showBookDetail(bookId, addToHistory = true) {
     currentBookId = bookId;
+    
+    // Aggiungi alla cronologia del browser
+    if (addToHistory) {
+        history.pushState({ view: 'detail', bookId: bookId }, '', `#book/${bookId}`);
+    }
+    
     try {
         const response = await fetch(`/api/books/${bookId}`);
         if (!response.ok) throw new Error('Failed to load book');
@@ -796,7 +833,9 @@ async function showBookDetail(bookId) {
                 })
                 .then(prevBook => {
                     prevBtn.disabled = false;
-                    prevBtn.onclick = () => showBookDetail(prevBook.id);
+                    prevBtn.onclick = () => {
+                        showBookDetail(prevBook.id, true);
+                    };
                 })
                 .catch(() => {
                     prevBtn.disabled = true;
@@ -814,7 +853,9 @@ async function showBookDetail(bookId) {
                 })
                 .then(nextBook => {
                     nextBtn.disabled = false;
-                    nextBtn.onclick = () => showBookDetail(nextBook.id);
+                    nextBtn.onclick = () => {
+                        showBookDetail(nextBook.id, true);
+                    };
                 })
                 .catch(() => {
                     nextBtn.disabled = true;
@@ -1248,7 +1289,12 @@ function goToPage(pageNumber) {
 }
 
 // Show books list
-async function showBooksList() {
+async function showBooksList(addToHistory = true) {
+    // Aggiungi alla cronologia del browser
+    if (addToHistory) {
+        history.pushState({ view: 'list' }, '', '#list');
+    }
+    
     // Se c'è un libro corrente, trova la pagina che lo contiene
     if (currentBookId) {
         try {
