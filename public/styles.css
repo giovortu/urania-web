@@ -652,13 +652,13 @@ header h1 {
 /* Inline editable fields */
 .editable-row {
     transition: background-color 0.2s;
+    padding: 5px;
+    margin: -5px;
+    border-radius: 5px;
 }
 
 .editable-row:hover {
     background-color: #f8f9fa;
-    border-radius: 5px;
-    padding: 5px;
-    margin: -5px;
 }
 
 .detail-value-editable {
