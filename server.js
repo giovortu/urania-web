@@ -374,7 +374,9 @@ app.get('/api/books', (req, res) => {
   const search = req.query.search;
   const collana = req.query.collana;
   const owned = req.query.owned;
+  const notOwned = req.query.notOwned;
   const read = req.query.read;
+  const notRead = req.query.notRead;
   const digital = req.query.digital;
   
   let whereConditions = [];
@@ -392,8 +394,14 @@ app.get('/api/books', (req, res) => {
   if (owned === 'true') {
     whereConditions.push('owned = 1');
   }
+  if (notOwned === 'true') {
+    whereConditions.push('owned = 0');
+  }
   if (read === 'true') {
     whereConditions.push('read = 1');
+  }
+  if (notRead === 'true') {
+    whereConditions.push('read = 0');
   }
   if (digital === 'true') {
     whereConditions.push('digital = 1');
@@ -484,7 +492,9 @@ app.get('/api/books/:id', (req, res) => {
     const filters = {
       collana: req.query.collana || '',
       owned: req.query.owned || '',
+      notOwned: req.query.notOwned || '',
       read: req.query.read || '',
+      notRead: req.query.notRead || '',
       digital: req.query.digital || '',
       search: req.query.search || ''
     };
@@ -499,7 +509,9 @@ app.get('/api/books/:id/prev', (req, res) => {
   const id = req.params.id;
   const collana = req.query.collana;
   const owned = req.query.owned;
+  const notOwned = req.query.notOwned;
   const read = req.query.read;
+  const notRead = req.query.notRead;
   const digital = req.query.digital;
   
   let whereConditions = ['b1.id = ?'];
@@ -512,8 +524,14 @@ app.get('/api/books/:id/prev', (req, res) => {
   if (owned === 'true') {
     whereConditions.push('b2.owned = 1');
   }
+  if (notOwned === 'true') {
+    whereConditions.push('b2.owned = 0');
+  }
   if (read === 'true') {
     whereConditions.push('b2.read = 1');
+  }
+  if (notRead === 'true') {
+    whereConditions.push('b2.read = 0');
   }
   if (digital === 'true') {
     whereConditions.push('b2.digital = 1');
@@ -546,7 +564,9 @@ app.get('/api/books/:id/next', (req, res) => {
   const id = req.params.id;
   const collana = req.query.collana;
   const owned = req.query.owned;
+  const notOwned = req.query.notOwned;
   const read = req.query.read;
+  const notRead = req.query.notRead;
   const digital = req.query.digital;
   
   let whereConditions = ['b1.id = ?'];
@@ -559,8 +579,14 @@ app.get('/api/books/:id/next', (req, res) => {
   if (owned === 'true') {
     whereConditions.push('b2.owned = 1');
   }
+  if (notOwned === 'true') {
+    whereConditions.push('b2.owned = 0');
+  }
   if (read === 'true') {
     whereConditions.push('b2.read = 1');
+  }
+  if (notRead === 'true') {
+    whereConditions.push('b2.read = 0');
   }
   if (digital === 'true') {
     whereConditions.push('b2.digital = 1');

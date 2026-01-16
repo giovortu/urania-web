@@ -8,7 +8,9 @@ let itemsPerPage = 12;
 let filters = {
     collana: '',
     owned: false,
+    notOwned: false,
     read: false,
+    notRead: false,
     digital: false,
     search: ''
 };
@@ -29,7 +31,9 @@ const booksList = document.getElementById('books-list');
 const searchInput = document.getElementById('search-input');
 const collanaFilter = document.getElementById('collana-filter');
 const ownedFilter = document.getElementById('owned-filter');
+const notOwnedFilter = document.getElementById('not-owned-filter');
 const readFilter = document.getElementById('read-filter');
+const notReadFilter = document.getElementById('not-read-filter');
 const digitalFilter = document.getElementById('digital-filter');
 const resetFiltersBtn = document.getElementById('reset-filters');
 const viewListBtn = document.getElementById('view-list');
@@ -191,8 +195,34 @@ function attachEventListeners() {
         saveState();
         applyFilters();
     });
-    ownedFilter.addEventListener('change', applyFilters);
-    readFilter.addEventListener('change', applyFilters);
+    
+    ownedFilter.addEventListener('change', () => {
+        if (ownedFilter.checked) {
+            notOwnedFilter.checked = false;
+        }
+        applyFilters();
+    });
+    
+    notOwnedFilter.addEventListener('change', () => {
+        if (notOwnedFilter.checked) {
+            ownedFilter.checked = false;
+        }
+        applyFilters();
+    });
+    
+    readFilter.addEventListener('change', () => {
+        if (readFilter.checked) {
+            notReadFilter.checked = false;
+        }
+        applyFilters();
+    });
+    
+    notReadFilter.addEventListener('change', () => {
+        if (notReadFilter.checked) {
+            readFilter.checked = false;
+        }
+        applyFilters();
+    });
     digitalFilter.addEventListener('change', applyFilters);
     resetFiltersBtn.addEventListener('click', resetFilters);
     viewListBtn.addEventListener('click', () => switchViewMode('list'));
@@ -312,7 +342,9 @@ async function loadBooks() {
             ...(filters.search && { search: filters.search }),
             ...(filters.collana && { collana: filters.collana }),
             ...(filters.owned && { owned: 'true' }),
+            ...(filters.notOwned && { notOwned: 'true' }),
             ...(filters.read && { read: 'true' }),
+            ...(filters.notRead && { notRead: 'true' }),
             ...(filters.digital && { digital: 'true' })
         });
         
@@ -397,7 +429,9 @@ function applyFilters() {
     filters = {
         collana: collanaFilter.value,
         owned: ownedFilter.checked,
+        notOwned: notOwnedFilter.checked,
         read: readFilter.checked,
+        notRead: notReadFilter.checked,
         digital: digitalFilter.checked,
         search: filters.search
     };
@@ -413,7 +447,9 @@ function resetFilters() {
     searchInput.value = '';
     collanaFilter.value = '';
     ownedFilter.checked = false;
+    notOwnedFilter.checked = false;
     readFilter.checked = false;
+    notReadFilter.checked = false;
     digitalFilter.checked = false;
     applyFilters();
 }
@@ -813,7 +849,9 @@ async function showBookDetail(bookId) {
         const navParams = new URLSearchParams({
             ...(filters.collana && { collana: filters.collana }),
             ...(filters.owned && { owned: 'true' }),
+            ...(filters.notOwned && { notOwned: 'true' }),
             ...(filters.read && { read: 'true' }),
+            ...(filters.notRead && { notRead: 'true' }),
             ...(filters.digital && { digital: 'true' })
         });
         
