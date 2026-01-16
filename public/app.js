@@ -464,7 +464,7 @@ async function loadCollane(forceRefresh = false, editoreId = null) {
                 option.value = collana;
                 option.textContent = collana;
             } else {
-                option.value = collana.nome; // Use name for filtering (backward compatibility)
+                option.value = collana.id; // Use ID for filtering
                 option.textContent = `${collana.nome} (${collana.editore_nome})`;
                 option.dataset.collanaId = collana.id;
                 option.dataset.editoreId = collana.editore_id;
@@ -509,7 +509,7 @@ async function loadEditori(forceRefresh = false) {
                 option.value = editore;
                 option.textContent = editore;
             } else {
-                option.value = editore.nome; // Use name for filtering (backward compatibility)
+                option.value = editore.id; // Use ID for filtering
                 option.textContent = editore.nome;
                 option.dataset.editoreId = editore.id;
             }
