@@ -401,6 +401,24 @@ function displayBooks(books) {
     updatePagination(totalPages);
 }
 
+// Generate inline stars widget for editing
+function generateInlineStarsWidget(starsValue) {
+    const stars = parseInt(starsValue) || 0;
+    let html = '';
+    
+    // Clear button
+    html += '<span class="inline-star inline-star-clear" data-value="0" title="Nessuna valutazione">✕</span>';
+    
+    // Star buttons (10 to 50)
+    for (let i = 1; i <= 5; i++) {
+        const value = i * 10;
+        const isActive = stars >= value;
+        html += `<span class="inline-star ${isActive ? 'active' : ''}" data-value="${value}" title="${i} stelle">⭐</span>`;
+    }
+    
+    return html;
+}
+
 // Format stars with half stars
 function formatStars(starsValue) {
     if (!starsValue) return 'Nessuna valutazione';
@@ -504,6 +522,96 @@ function createBookElement(book) {
     return div;
 }
 
+// Attach inline edit handlers
+function attachInlineEditHandlers(book) {
+    // Handle checkboxes
+    const checkboxes = document.querySelectorAll('.inline-checkbox input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', async (e) => {
+            const field = e.target.dataset.field;
+            const value = e.target.checked;
+            const label = e.target.nextElementSibling;
+            
+            // Update label text
+            label.textContent = value ? '✓ Sì' : '✗ No';
+            
+            // Save to database
+            await saveInlineEdit(field, value);
+        });
+    });
+    
+    // Handle stars
+    const starsWidget = document.querySelector('.inline-stars-widget');
+    if (starsWidget) {
+        const stars = starsWidget.querySelectorAll('.inline-star');
+        stars.forEach(star => {
+            star.addEventListener('click', async (e) => {
+                const value = parseInt(e.target.dataset.value);
+                
+                // Update UI
+                stars.forEach(s => {
+                    const starValue = parseInt(s.dataset.value);
+                    if (starValue === 0) return; // Skip clear button
+                    if (starValue <= value) {
+                        s.classList.add('active');
+                    } else {
+                        s.classList.remove('active');
+                    }
+                });
+                
+                // Update data attribute
+                starsWidget.dataset.value = value;
+                
+                // Save to database
+                await saveInlineEdit('stars', value);
+            });
+        });
+    }
+}
+
+// Save inline edit to database
+async function saveInlineEdit(field, value) {
+    if (!currentBookId) return;
+    
+    // Show loader
+    const loaderOverlay = document.getElementById('save-loader-overlay');
+    loaderOverlay.style.display = 'flex';
+    
+    try {
+        const response = await fetch(`/api/books/${currentBookId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ [field]: value })
+        });
+        
+        if (!response.ok) throw new Error('Failed to update book');
+        
+        // Update local data
+        const bookIndex = allBooks.findIndex(b => b.id === currentBookId);
+        if (bookIndex !== -1) {
+            allBooks[bookIndex][field] = value;
+        }
+        
+        // Update stats if necessary
+        if (['owned', 'read'].includes(field)) {
+            updateStats();
+        }
+        
+        // Reload books list to sync
+        loadBooks();
+        
+        showSuccess('Modifica salvata con successo');
+    } catch (error) {
+        console.error('Error saving inline edit:', error);
+        showError('Errore nel salvataggio della modifica');
+    } finally {
+        // Hide loader
+        loaderOverlay.style.display = 'none';
+    }
+}
+
 // Switch view mode
 function switchViewMode(mode) {
     currentViewMode = mode;
@@ -581,25 +689,49 @@ async function showBookDetail(bookId) {
 
                     <div class="detail-section">
                         <h3>Informazioni Lettura</h3>
-                        <div class="detail-row">
+                        <div class="detail-row editable-row">
                             <span class="detail-label">Valutazione:</span>
-                            <span class="detail-value">${formatStars(book.stars)}</span>
+                            <div class="detail-value-editable">
+                                <div class="inline-stars-widget" data-field="stars" data-value="${book.stars || 0}">
+                                    ${generateInlineStarsWidget(book.stars || 0)}
+                                </div>
+                            </div>
                         </div>
-                        <div class="detail-row">
+                        <div class="detail-row editable-row">
                             <span class="detail-label">Nella collezione:</span>
-                            <span class="detail-value">${book.owned ? '✓ Sì' : '✗ No'}</span>
+                            <div class="detail-value-editable">
+                                <label class="inline-checkbox">
+                                    <input type="checkbox" data-field="owned" ${book.owned ? 'checked' : ''}>
+                                    <span class="checkbox-label">${book.owned ? '✓ Sì' : '✗ No'}</span>
+                                </label>
+                            </div>
                         </div>
-                        <div class="detail-row">
+                        <div class="detail-row editable-row">
                             <span class="detail-label">Letto:</span>
-                            <span class="detail-value">${book.read ? '✓ Sì' : '✗ No'}</span>
+                            <div class="detail-value-editable">
+                                <label class="inline-checkbox">
+                                    <input type="checkbox" data-field="read" ${book.read ? 'checked' : ''}>
+                                    <span class="checkbox-label">${book.read ? '✓ Sì' : '✗ No'}</span>
+                                </label>
+                            </div>
                         </div>
-                        <div class="detail-row">
+                        <div class="detail-row editable-row">
                             <span class="detail-label">Digitale:</span>
-                            <span class="detail-value">${book.digital ? '✓ Sì' : '✗ No'}</span>
+                            <div class="detail-value-editable">
+                                <label class="inline-checkbox">
+                                    <input type="checkbox" data-field="digital" ${book.digital ? 'checked' : ''}>
+                                    <span class="checkbox-label">${book.digital ? '✓ Sì' : '✗ No'}</span>
+                                </label>
+                            </div>
                         </div>
-                        <div class="detail-row">
+                        <div class="detail-row editable-row">
                             <span class="detail-label">Ristampa:</span>
-                            <span class="detail-value">${book.reprint ? '✓ Sì' : '✗ No'}</span>
+                            <div class="detail-value-editable">
+                                <label class="inline-checkbox">
+                                    <input type="checkbox" data-field="reprint" ${book.reprint ? 'checked' : ''}>
+                                    <span class="checkbox-label">${book.reprint ? '✓ Sì' : '✗ No'}</span>
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -629,12 +761,11 @@ async function showBookDetail(bookId) {
             </div>
 
             <div id="indexes-section"></div>
-
-            <div class="book-actions">
-                <button class="btn-edit" onclick="openEditModal()">Modifica</button>
-            </div>
         `;
 
+        // Attach inline edit handlers
+        attachInlineEditHandlers(book);
+        
         // Attach navigation handlers
         const prevBtn = document.getElementById('prev-book-btn');
         const nextBtn = document.getElementById('next-book-btn');
@@ -905,13 +1036,9 @@ function updateStarsWidgetPreview(rating) {
 function closeModal() {
     editModal.style.display = 'none';
     editForm.reset();
-    // Nascondi il loader e riabilita i pulsanti
-    const loader = document.getElementById('save-loader');
-    const saveBtn = document.getElementById('save-btn');
-    const cancelBtn = document.getElementById('cancel-btn');
-    if (loader) loader.style.display = 'none';
-    if (saveBtn) saveBtn.disabled = false;
-    if (cancelBtn) cancelBtn.disabled = false;
+    // Nascondi il loader overlay se ancora visibile
+    const loaderOverlay = document.getElementById('save-loader-overlay');
+    if (loaderOverlay) loaderOverlay.style.display = 'none';
 }
 
 // Save book
@@ -937,14 +1064,9 @@ async function saveBook() {
         reprint: document.getElementById('edit-reprint').checked
     };
 
-    // Mostra il loader e disabilita i pulsanti
-    const loader = document.getElementById('save-loader');
-    const saveBtn = document.getElementById('save-btn');
-    const cancelBtn = document.getElementById('cancel-btn');
-    
-    loader.style.display = 'flex';
-    saveBtn.disabled = true;
-    cancelBtn.disabled = true;
+    // Mostra il loader overlay
+    const loaderOverlay = document.getElementById('save-loader-overlay');
+    loaderOverlay.style.display = 'flex';
 
     try {
         const response = await fetch(`/api/books/${currentBookId}`, {
@@ -973,10 +1095,8 @@ async function saveBook() {
         console.error('Error saving book:', error);
         showError('Errore nel salvataggio del libro');
     } finally {
-        // Nascondi il loader e riabilita i pulsanti
-        loader.style.display = 'none';
-        saveBtn.disabled = false;
-        cancelBtn.disabled = false;
+        // Nascondi il loader overlay
+        loaderOverlay.style.display = 'none';
     }
 }
 

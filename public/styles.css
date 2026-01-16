@@ -196,12 +196,10 @@ header h1 {
     gap: 20px;
 }
 
-.detail-top-nav {
+.detail-left-buttons {
     display: flex;
-    justify-content: space-between;
+    gap: 10px;
     align-items: center;
-    margin-bottom: 20px;
-    gap: 20px;
 }
 
 .detail-nav-buttons {
@@ -242,6 +240,23 @@ header h1 {
 
 .btn-back:hover {
     background: #e9ecef;
+}
+
+.btn-edit {
+    background: #667eea;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.95em;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-edit:hover {
+    background: #5568d3;
+    transform: translateY(-2px);
 }
 
 /* Content Area */
@@ -634,6 +649,86 @@ header h1 {
     font-size: 1.1em;
 }
 
+/* Inline editable fields */
+.editable-row {
+    transition: background-color 0.2s;
+}
+
+.editable-row:hover {
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    padding: 5px;
+    margin: -5px;
+}
+
+.detail-value-editable {
+    flex: 1;
+}
+
+.inline-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.inline-checkbox input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: #667eea;
+}
+
+.checkbox-label {
+    color: #333;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.inline-checkbox:hover .checkbox-label {
+    color: #667eea;
+}
+
+/* Inline stars widget */
+.inline-stars-widget {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.inline-star {
+    font-size: 1.5em;
+    cursor: pointer;
+    filter: grayscale(100%);
+    opacity: 0.3;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.inline-star:hover {
+    transform: scale(1.2);
+    opacity: 0.6;
+}
+
+.inline-star.active {
+    filter: grayscale(0%);
+    opacity: 1;
+}
+
+.inline-star-clear {
+    font-size: 1.2em;
+    color: #999;
+    filter: none;
+    opacity: 1;
+    margin-right: 5px;
+}
+
+.inline-star-clear:hover {
+    color: #f44336;
+    transform: scale(1.1);
+}
+
 .indexes-list {
     display: flex;
     flex-direction: column;
@@ -707,28 +802,13 @@ header h1 {
     filter: opacity(1);
 }
 
+/* Book actions section - no longer used, buttons moved to top nav */
 .book-actions {
     margin-top: 30px;
     display: flex;
     gap: 10px;
     border-top: 2px solid #e9ecef;
     padding-top: 20px;
-}
-
-.btn-edit {
-    background: #667eea;
-    color: white;
-    padding: 12px 30px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1em;
-    font-weight: 600;
-}
-
-.btn-edit:hover {
-    background: #5568d3;
-    transform: translateY(-2px);
 }
 
 /* Modal */
@@ -789,27 +869,51 @@ header h1 {
     justify-content: flex-end;
     padding: 20px 30px;
     border-top: 1px solid #e9ecef;
-    position: relative;
 }
 
-/* Loader styles */
-.save-loader {
-    position: absolute;
-    left: 30px;
-    top: 50%;
-    transform: translateY(-50%);
+/* Loader Overlay styles */
+.loader-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.6);
     display: flex;
     align-items: center;
-    gap: 12px;
-    color: #667eea;
-    font-weight: 500;
+    justify-content: center;
+    z-index: 10000;
+    backdrop-filter: blur(2px);
+}
+
+.loader-popup {
+    background: white;
+    padding: 40px 50px;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    animation: fadeInScale 0.3s ease;
+}
+
+@keyframes fadeInScale {
+    0% {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 .loader-spinner {
-    width: 24px;
-    height: 24px;
-    border: 3px solid #f3f3f3;
-    border-top: 3px solid #667eea;
+    width: 48px;
+    height: 48px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #667eea;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
 }
@@ -820,7 +924,9 @@ header h1 {
 }
 
 .loader-text {
-    font-size: 0.95em;
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #333;
     white-space: nowrap;
 }
 

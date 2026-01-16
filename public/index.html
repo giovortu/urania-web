@@ -128,7 +128,10 @@
                 <!-- Book Detail -->
                 <section id="book-detail-section" class="book-detail" style="display: none;">
                     <div class="detail-top-nav">
-                        <button id="back-btn" class="btn-back">← Indietro</button>
+                        <div class="detail-left-buttons">
+                            <button id="edit-book-btn" class="btn-edit" onclick="openEditModal()">Modifica</button>
+                            <button id="back-btn" class="btn-back">← Indietro</button>
+                        </div>
                         <div class="detail-nav-buttons">
                             <button id="prev-book-btn" class="detail-nav-btn prev-btn" title="Libro precedente">◀</button>
                             <button id="next-book-btn" class="detail-nav-btn next-btn" title="Libro successivo">▶</button>
@@ -232,11 +235,15 @@
             <div class="modal-footer">
                 <button id="save-btn" class="btn-primary">Salva</button>
                 <button id="cancel-btn" class="btn-secondary">Annulla</button>
-                <div id="save-loader" class="save-loader" style="display: none;">
-                    <div class="loader-spinner"></div>
-                    <span class="loader-text">Salvataggio in corso...</span>
-                </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Loader Overlay -->
+    <div id="save-loader-overlay" class="loader-overlay" style="display: none;">
+        <div class="loader-popup">
+            <div class="loader-spinner"></div>
+            <span class="loader-text">Salvataggio in corso...</span>
         </div>
     </div>
 
