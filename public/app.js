@@ -502,9 +502,8 @@ function createBookElement(book) {
     if (book.digital) {
         badges.innerHTML += '<span class="badge digital">Digitale</span>';
     }
-    if (book.stars) {
-        badges.innerHTML += `<span class="badge stars">${formatStars(book.stars)}</span>`;
-    }
+    // Mostra sempre il badge stelle, anche se vuoto
+    badges.innerHTML += `<span class="badge stars">${formatStars(book.stars)}</span>`;
 
     info.appendChild(title);
     info.appendChild(author);

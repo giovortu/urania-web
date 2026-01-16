@@ -440,10 +440,23 @@ header h1 {
     margin-bottom: 5px;
 }
 
+.books-list.grid-view .book-title {
+    min-height: 2.8em;
+    line-height: 1.4em;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
 .book-author {
     color: #666;
     font-size: 0.6em;
     margin-bottom: 8px;
+}
+
+.books-list.grid-view .book-author {
+    min-height: 1.2em;
 }
 
 .book-meta {
@@ -456,6 +469,7 @@ header h1 {
     gap: 5px;
     flex-wrap: wrap;
     margin-top: 8px;
+    min-height: 24px;
 }
 
 .badge {
