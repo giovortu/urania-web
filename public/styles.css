@@ -306,11 +306,12 @@ header h1 {
     white-space: nowrap;
 }
 
-.pagination-items-select select {
+.pagination-items-select .items-input {
     padding: 6px 8px;
     border: 1px solid #ddd;
     border-radius: 5px;
     font-size: 14px;
+    width: 70px;
 }
 
 .view-toggle {
@@ -1081,7 +1082,7 @@ header h1 {
     color: #333;
 }
 
-.items-select {
+.items-input {
     padding: 8px 12px;
     border: 2px solid #667eea;
     border-radius: 5px;
@@ -1090,9 +1091,10 @@ header h1 {
     background: white;
     cursor: pointer;
     font-weight: 600;
+    width: 70px;
 }
 
-.items-select:focus {
+.items-input:focus {
     outline: none;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
 }

@@ -169,7 +169,18 @@ function attachEventListeners() {
     saveBtn.addEventListener('click', saveBook);
     itemsPerPageSelect.addEventListener('change', () => {
         const oldItemsPerPage = itemsPerPage;
-        itemsPerPage = parseInt(itemsPerPageSelect.value);
+        let newValue = parseInt(itemsPerPageSelect.value);
+        
+        // Valida il valore nell'intervallo 2-32
+        if (isNaN(newValue) || newValue < 2) {
+            newValue = 2;
+            itemsPerPageSelect.value = 2;
+        } else if (newValue > 32) {
+            newValue = 32;
+            itemsPerPageSelect.value = 32;
+        }
+        
+        itemsPerPage = newValue;
         
         // Calcola il primo libro della pagina corrente
         const firstBookIndex = (currentPage - 1) * oldItemsPerPage;

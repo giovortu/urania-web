@@ -73,17 +73,7 @@
                         <div class="header-controls">
                             <div class="pagination-items-select">
                                 <label for="items-per-page">Libri per pagina:</label>
-                                <select id="items-per-page" class="items-select">
-                                    <option value="4">4</option>
-                                    <option value="8">8</option>
-                                    <option value="12" selected>12</option>
-                                    <option value="16">16</option>
-                                    <option value="20">20</option>
-                                    <option value="24">24</option>
-                                    <option value="32">32</option>
-                                    <option value="40">40</option>
-                                    <option value="48">48</option>
-                                </select>
+                                <input type="number" id="items-per-page" class="items-input" min="2" max="32" step="1" value="12">
                             </div>
                             <div class="view-toggle">
                                 <button id="view-list" class="view-btn active" title="Vista Lista">≡</button>
