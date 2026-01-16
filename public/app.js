@@ -7,6 +7,7 @@ let currentPage = 1;
 let itemsPerPage = 12;
 let filters = {
     collana: '',
+    editore: '',
     owned: false,
     notOwned: false,
     read: false,
@@ -30,6 +31,7 @@ function normalizeSearchText(text) {
 const booksList = document.getElementById('books-list');
 const searchInput = document.getElementById('search-input');
 const collanaFilter = document.getElementById('collana-filter');
+const editoreFilter = document.getElementById('editore-filter');
 const ownedFilter = document.getElementById('owned-filter');
 const notOwnedFilter = document.getElementById('not-owned-filter');
 const readFilter = document.getElementById('read-filter');
@@ -72,6 +74,7 @@ const hardReloadBtn = document.getElementById('hard-reload-btn');
 function saveState() {
     const state = {
         collana: collanaFilter.value,
+        editore: editoreFilter.value,
         viewMode: currentViewMode,
         currentPage: currentPage,
         itemsPerPage: itemsPerPage,
@@ -89,6 +92,10 @@ function restoreState() {
             // Restore collana filter
             if (state.collana !== undefined && state.collana !== null) {
                 collanaFilter.value = state.collana;
+            }
+            // Restore editore filter
+            if (state.editore !== undefined && state.editore !== null) {
+                editoreFilter.value = state.editore;
             }
             // Restore view mode
             if (state.viewMode === 'grid') {
@@ -130,6 +137,7 @@ function restoreState() {
 // Event Listeners
 document.addEventListener('DOMContentLoaded', async () => {
     await loadCollane();
+    await loadEditori();
     restoreState();
     attachEventListeners();
     attachMobileMenuListeners();
@@ -192,6 +200,11 @@ function attachEventListeners() {
     }
     
     collanaFilter.addEventListener('change', () => {
+        saveState();
+        applyFilters();
+    });
+    
+    editoreFilter.addEventListener('change', () => {
         saveState();
         applyFilters();
     });
@@ -309,6 +322,7 @@ function attachEventListeners() {
 reloadBtn.addEventListener('click', async () => {
         await loadBooks();
         await loadCollane(true);
+        await loadEditori(true);
         restoreState();
         showSuccess('Database ricaricato correttamente');
     });
@@ -322,11 +336,13 @@ reloadBtn.addEventListener('click', async () => {
             console.error('Errore durante la cancellazione cache su disco', err);
         }
         localStorage.removeItem('collaneCache');
+        localStorage.removeItem('editoriCache');
         localStorage.removeItem('bookAppState');
         allBooks = [];
         filteredBooks = [];
         await loadBooks();
         await loadCollane(true);
+        await loadEditori(true);
         restoreState();
         showSuccess('Hard reload completato con successo');
     });
@@ -341,6 +357,7 @@ async function loadBooks() {
             _ts: Date.now(), // cache buster per evitare risposte stale
             ...(filters.search && { search: filters.search }),
             ...(filters.collana && { collana: filters.collana }),
+            ...(filters.editore && { editore: filters.editore }),
             ...(filters.owned && { owned: 'true' }),
             ...(filters.notOwned && { notOwned: 'true' }),
             ...(filters.read && { read: 'true' }),
@@ -432,10 +449,55 @@ async function loadCollane(forceRefresh = false) {
     }
 }
 
+// Load editori (publishers)
+async function loadEditori(forceRefresh = false) {
+    try {
+        let editori;
+        
+        if (!forceRefresh) {
+            // Try to get editori from localStorage
+            const cachedEditori = localStorage.getItem('editoriCache');
+            if (cachedEditori) {
+                editori = JSON.parse(cachedEditori);
+            } else {
+                // Fetch from server and cache
+                const response = await fetch('/api/editori');
+                if (!response.ok) throw new Error('Failed to load publishers');
+                editori = await response.json();
+                localStorage.setItem('editoriCache', JSON.stringify(editori));
+            }
+        } else {
+            // Force refresh from server
+            const response = await fetch('/api/editori');
+            if (!response.ok) throw new Error('Failed to load publishers');
+            editori = await response.json();
+            localStorage.setItem('editoriCache', JSON.stringify(editori));
+        }
+        
+        editoreFilter.innerHTML = '<option value="">Tutti gli editori</option>';
+        editori.forEach(editore => {
+            const option = document.createElement('option');
+            // Support both old format (string) and new format (object with id, nome)
+            if (typeof editore === 'string') {
+                option.value = editore;
+                option.textContent = editore;
+            } else {
+                option.value = editore.nome; // Use name for filtering (backward compatibility)
+                option.textContent = editore.nome;
+                option.dataset.editoreId = editore.id;
+            }
+            editoreFilter.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error loading publishers:', error);
+    }
+}
+
 // Apply filters
 function applyFilters() {
     filters = {
         collana: collanaFilter.value,
+        editore: editoreFilter.value,
         owned: ownedFilter.checked,
         notOwned: notOwnedFilter.checked,
         read: readFilter.checked,
@@ -454,6 +516,7 @@ function applyFilters() {
 function resetFilters() {
     searchInput.value = '';
     collanaFilter.value = '';
+    editoreFilter.value = '';
     ownedFilter.checked = false;
     notOwnedFilter.checked = false;
     readFilter.checked = false;

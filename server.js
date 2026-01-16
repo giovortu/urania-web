@@ -790,7 +790,8 @@ app.get('/api/books/:id/position', (req, res) => {
     if (isId) {
       whereConditions.push('b.collana_id = ?');
       params.push(collana);
-    } else {\n      whereConditions.push('c.nome = ?');
+    } else {
+      whereConditions.push('c.nome = ?');
       params.push(collana);
     }
   }
