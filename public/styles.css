@@ -1259,7 +1259,7 @@ header h1 {
     line-height: 1;
     height: 1.2em;
     z-index: 0;
-    opacity: 0.4;
+    opacity: 0;
 }
 
 .star-foreground {
