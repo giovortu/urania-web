@@ -549,7 +549,7 @@ header h1 {
 }
 
 .badge.stars {
-    background: #e7d4f5;
+    background: transparent;
     color: #6f42c1;
     display: inline-flex;
     align-items: center;
