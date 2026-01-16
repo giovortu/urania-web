@@ -606,9 +606,6 @@ async function saveInlineEdit(field, value) {
             updateStats();
         }
         
-        // Reload books list to sync
-        loadBooks();
-        
         showSuccess('Modifica salvata con successo');
     } catch (error) {
         console.error('Error saving inline edit:', error);
