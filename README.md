@@ -57,9 +57,10 @@ Urania_web/
 - `GET /api/indexes/:bookId` - Ottieni indice/commenti di un libro
 - `PUT /api/books/:id` - Aggiorna dati di un libro
 
-## Campi Database
+## Struttura Database
 
-La tabella `books` contiene i seguenti campi:
+### Tabella `books`
+Tabella principale contenente i libri:
 - `id` (INTEGER) - Chiave primaria
 - `number` (INTEGER) - Numero edizione
 - `title_ita` (TEXT) - Titolo italiano
@@ -71,13 +72,45 @@ La tabella `books` contiene i seguenti campi:
 - `synopsis` (TEXT) - Sinossi
 - `synopsis_image` (BLOB) - Immagine sinossi
 - `owned` (BOOL) - Posseduto?
-- `stars` (INTEGER) - Valutazione (0-5)
+- `stars` (INTEGER) - Valutazione (0-50, rappresenta 0-5 stelle con mezze stelle)
 - `comment` (TEXT) - Commenti
 - `reprint` (BOOL) - Ristampa?
 - `read` (BOOL) - Letto?
-- `collana` (TEXT) - Collana/Serie
-- `editore` (TEXT) - Editore
 - `digital` (BOOL) - Versione digitale?
+- `editore_id` (INTEGER) - FK verso tabella `editori`
+- `collana_id` (INTEGER) - FK verso tabella `collane`
+- `collana` (TEXT) - **Deprecato** - Collana/Serie (mantenuto per retrocompatibilità)
+- `editore` (TEXT) - **Deprecato** - Editore (mantenuto per retrocompatibilità)
+- `cover_hash` (TEXT) - Hash MD5 dell'immagine copertina
+- `synopsis_hash` (TEXT) - Hash MD5 dell'immagine sinossi
+
+### Tabella `editori`
+Tabella normalizzata degli editori:
+- `id` (INTEGER) - Chiave primaria
+- `nome` (TEXT) - Nome editore (UNIQUE)
+- `created_at` (DATETIME) - Data creazione record
+
+### Tabella `collane`
+Tabella normalizzata delle collane:
+- `id` (INTEGER) - Chiave primaria
+- `nome` (TEXT) - Nome collana
+- `editore_id` (INTEGER) - FK verso tabella `editori`
+- `created_at` (DATETIME) - Data creazione record
+- UNIQUE constraint su (`nome`, `editore_id`)
+
+### Migrazione Database
+
+Per migrare un database esistente (con editore e collana come stringhe) alla nuova struttura normalizzata:
+
+```bash
+node tools/migrate_to_normalized_schema.js
+```
+
+Lo script esegue automaticamente:
+1. Creazione tabelle `editori` e `collane`
+2. Estrazione e popolamento dati dalle colonne stringa esistenti
+3. Aggiunta foreign key alla tabella `books`
+4. Creazione indici per ottimizzare le query
 
 ## Funzionalità
 
@@ -87,12 +120,14 @@ La tabella `books` contiene i seguenti campi:
 
 ### Filtri
 - **Collana**: Filtra per collezione
+- **Editore**: Filtra per editore
 - **Posseduti**: Mostra solo libri posseduti
 - **Letti**: Mostra solo libri letti
 - **Digitali**: Mostra solo versioni digitali
 
 ### Modifica Libri
 Seleziona un libro per visualizzare tutti i dettagli. Usa il pulsante "Modifica" per aggiornare i campi del libro.
+Nel form di modifica, editore e collana sono ora selezionabili da dropdown popolati dinamicamente dalle tabelle normalizzate.
 
 ## Sviluppo
 

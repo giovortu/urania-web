@@ -181,8 +181,14 @@ function preCacheAdjacentImages(bookId, filters = {}, lookAhead = 2, lookBehind 
   let behindParams = [bookId];
   
   if (filters.collana) {
-    behindConditions.push('b2.collana = ?');
-    behindParams.push(filters.collana);
+    const isId = !isNaN(parseInt(filters.collana));
+    if (isId) {
+      behindConditions.push('b2.collana_id = ?');
+      behindParams.push(filters.collana);
+    } else {
+      behindConditions.push('c2.nome = ?');
+      behindParams.push(filters.collana);
+    }
   }
   if (filters.owned === 'true') {
     behindConditions.push('b2.owned = 1');
@@ -198,8 +204,10 @@ function preCacheAdjacentImages(bookId, filters = {}, lookAhead = 2, lookBehind 
   
   // Get lookBehind books (same as /prev endpoint)
   const behindQuery = `
-    SELECT b2.id, b2.cover_hash, b2.synopsis_hash FROM books b1
+    SELECT b2.id, b2.cover_hash, b2.synopsis_hash 
+    FROM books b1
     JOIN books b2 ON b2.number < b1.number
+    LEFT JOIN collane c2 ON c2.id = b2.collana_id
     WHERE ${behindWhereClause}
     ORDER BY b2.number DESC
     LIMIT ?
@@ -211,8 +219,14 @@ function preCacheAdjacentImages(bookId, filters = {}, lookAhead = 2, lookBehind 
   let aheadParams = [bookId];
   
   if (filters.collana) {
-    aheadConditions.push('b2.collana = ?');
-    aheadParams.push(filters.collana);
+    const isId = !isNaN(parseInt(filters.collana));
+    if (isId) {
+      aheadConditions.push('b2.collana_id = ?');
+      aheadParams.push(filters.collana);
+    } else {
+      aheadConditions.push('c2.nome = ?');
+      aheadParams.push(filters.collana);
+    }
   }
   if (filters.owned === 'true') {
     aheadConditions.push('b2.owned = 1');
@@ -228,8 +242,10 @@ function preCacheAdjacentImages(bookId, filters = {}, lookAhead = 2, lookBehind 
   
   // Get lookAhead books (same as /next endpoint)
   const aheadQuery = `
-    SELECT b2.id, b2.cover_hash, b2.synopsis_hash FROM books b1
+    SELECT b2.id, b2.cover_hash, b2.synopsis_hash 
+    FROM books b1
     JOIN books b2 ON b2.number > b1.number
+    LEFT JOIN collane c2 ON c2.id = b2.collana_id
     WHERE ${aheadWhereClause}
     ORDER BY b2.number ASC
     LIMIT ?
@@ -383,34 +399,43 @@ app.get('/api/books', (req, res) => {
   let params = [];
   
   if (search) {
-    whereConditions.push('(title_ita COLLATE NOCASE LIKE ? OR title_orig COLLATE NOCASE LIKE ?)');
+    whereConditions.push('(b.title_ita COLLATE NOCASE LIKE ? OR b.title_orig COLLATE NOCASE LIKE ?)');
     params.push(`%${search}%`, `%${search}%`);
     console.log(`[SEARCH] Query: "${search}"`);
   }
   if (collana) {
-    whereConditions.push('collana = ?');
-    params.push(collana);
+    const isId = !isNaN(parseInt(collana));
+    if (isId) {
+      whereConditions.push('b.collana_id = ?');
+      params.push(collana);
+    } else {
+      whereConditions.push('c.nome = ?');
+      params.push(collana);
+    }
   }
   if (owned === 'true') {
-    whereConditions.push('owned = 1');
+    whereConditions.push('b.owned = 1');
   }
   if (notOwned === 'true') {
-    whereConditions.push('owned = 0');
+    whereConditions.push('b.owned = 0');
   }
   if (read === 'true') {
-    whereConditions.push('read = 1');
+    whereConditions.push('b.read = 1');
   }
   if (notRead === 'true') {
-    whereConditions.push('read = 0');
+    whereConditions.push('b.read = 0');
   }
   if (digital === 'true') {
-    whereConditions.push('digital = 1');
+    whereConditions.push('b.digital = 1');
   }
   
   const whereClause = whereConditions.length > 0 ? 'WHERE ' + whereConditions.join(' AND ') : '';
   
   // Get total count
-  db.get(`SELECT COUNT(*) as total FROM books ${whereClause}`, params, (err, countRow) => {
+  db.get(`SELECT COUNT(*) as total FROM books b 
+    LEFT JOIN collane c ON c.id = b.collana_id 
+    LEFT JOIN editori e ON e.id = b.editore_id 
+    ${whereClause}`, params, (err, countRow) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -419,8 +444,16 @@ app.get('/api/books', (req, res) => {
     const total = countRow.total;
     const offset = (page - 1) * limit;
     
-    // Get paginated books
-    const query = `SELECT * FROM books ${whereClause} ORDER BY number ASC LIMIT ? OFFSET ?`;
+    // Get paginated books with publisher and series names
+    const query = `
+      SELECT b.*, c.nome as collana, e.nome as editore
+      FROM books b
+      LEFT JOIN collane c ON c.id = b.collana_id
+      LEFT JOIN editori e ON e.id = b.editore_id
+      ${whereClause} 
+      ORDER BY b.number ASC 
+      LIMIT ? OFFSET ?
+    `;
     db.all(query, [...params, limit, offset], (err, rows) => {
       if (err) {
         res.status(500).json({ error: err.message });
@@ -448,24 +481,127 @@ app.get('/api/books', (req, res) => {
   });
 });
 
-// Get all unique collections (collane)
-app.get('/api/collane', (req, res) => {
+// Get all publishers (editori)
+app.get('/api/editori', (req, res) => {
   res.setHeader('Cache-Control', 'public, max-age=3600');
-  const query = `SELECT DISTINCT collana FROM books WHERE collana IS NOT NULL AND collana != '' ORDER BY collana ASC`;
+  const query = `SELECT id, nome FROM editori ORDER BY nome ASC`;
   db.all(query, (err, rows) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    res.json(rows.map(r => r.collana));
+    res.json(rows);
   });
 });
 
-// Get books by collection
+// Get all unique collections (collane)
+app.get('/api/collane', (req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  const editoreId = req.query.editore_id;
+  
+  let query, params = [];
+  
+  if (editoreId) {
+    query = `
+      SELECT c.id, c.nome, c.editore_id, e.nome as editore_nome
+      FROM collane c
+      JOIN editori e ON e.id = c.editore_id
+      WHERE c.editore_id = ?
+      ORDER BY c.nome ASC
+    `;
+    params = [editoreId];
+  } else {
+    query = `
+      SELECT c.id, c.nome, c.editore_id, e.nome as editore_nome
+      FROM collane c
+      JOIN editori e ON e.id = c.editore_id
+      ORDER BY e.nome, c.nome ASC
+    `;
+  }
+  
+  db.all(query, params, (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(rows);
+  });
+});
+
+// Get books by collection (supports both ID and name for backward compatibility)
 app.get('/api/books/collana/:collana', (req, res) => {
   const collana = decodeURIComponent(req.params.collana);
-  const query = `SELECT * FROM books WHERE collana = ? ORDER BY number ASC`;
-  db.all(query, [collana], (err, rows) => {
+  
+  // Check if it's an ID (number) or name (string)
+  const isId = !isNaN(parseInt(collana));
+  
+  let query, params;
+  
+  if (isId) {
+    // Query by collana_id
+    query = `
+      SELECT b.*, c.nome as collana, e.nome as editore
+      FROM books b
+      LEFT JOIN collane c ON c.id = b.collana_id
+      LEFT JOIN editori e ON e.id = b.editore_id
+      WHERE b.collana_id = ?
+      ORDER BY b.number ASC
+    `;
+    params = [collana];
+  } else {
+    // Query by collana name (backward compatibility)
+    query = `
+      SELECT b.*, c.nome as collana, e.nome as editore
+      FROM books b
+      LEFT JOIN collane c ON c.id = b.collana_id
+      LEFT JOIN editori e ON e.id = b.editore_id
+      WHERE c.nome = ?
+      ORDER BY b.number ASC
+    `;
+    params = [collana];
+  }
+  
+  db.all(query, params, (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(rows);
+  });
+});
+
+// Get books by publisher
+app.get('/api/books/editore/:editore', (req, res) => {
+  const editore = decodeURIComponent(req.params.editore);
+  
+  // Check if it's an ID (number) or name (string)
+  const isId = !isNaN(parseInt(editore));
+  
+  let query, params;
+  
+  if (isId) {
+    query = `
+      SELECT b.*, c.nome as collana, e.nome as editore
+      FROM books b
+      LEFT JOIN collane c ON c.id = b.collana_id
+      LEFT JOIN editori e ON e.id = b.editore_id
+      WHERE b.editore_id = ?
+      ORDER BY b.number ASC
+    `;
+    params = [editore];
+  } else {
+    query = `
+      SELECT b.*, c.nome as collana, e.nome as editore
+      FROM books b
+      LEFT JOIN collane c ON c.id = b.collana_id
+      LEFT JOIN editori e ON e.id = b.editore_id
+      WHERE e.nome = ?
+      ORDER BY b.number ASC
+    `;
+    params = [editore];
+  }
+  
+  db.all(query, params, (err, rows) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -477,7 +613,13 @@ app.get('/api/books/collana/:collana', (req, res) => {
 // Get single book by ID
 app.get('/api/books/:id', (req, res) => {
   const id = req.params.id;
-  const query = `SELECT * FROM books WHERE id = ?`;
+  const query = `
+    SELECT b.*, c.nome as collana, c.id as collana_id, e.nome as editore, e.id as editore_id
+    FROM books b
+    LEFT JOIN collane c ON c.id = b.collana_id
+    LEFT JOIN editori e ON e.id = b.editore_id
+    WHERE b.id = ?
+  `;
   db.get(query, [id], (err, row) => {
     if (err) {
       res.status(500).json({ error: err.message });
@@ -518,8 +660,14 @@ app.get('/api/books/:id/prev', (req, res) => {
   let params = [id];
   
   if (collana) {
-    whereConditions.push('b2.collana = ?');
-    params.push(collana);
+    const isId = !isNaN(parseInt(collana));
+    if (isId) {
+      whereConditions.push('b2.collana_id = ?');
+      params.push(collana);
+    } else {
+      whereConditions.push('c2.nome = ?');
+      params.push(collana);
+    }
   }
   if (owned === 'true') {
     whereConditions.push('b2.owned = 1');
@@ -540,8 +688,11 @@ app.get('/api/books/:id/prev', (req, res) => {
   const whereClause = whereConditions.join(' AND ');
   
   const query = `
-    SELECT b2.* FROM books b1
+    SELECT b2.*, c2.nome as collana, e2.nome as editore 
+    FROM books b1
     JOIN books b2 ON b2.number < b1.number
+    LEFT JOIN collane c2 ON c2.id = b2.collana_id
+    LEFT JOIN editori e2 ON e2.id = b2.editore_id
     WHERE ${whereClause}
     ORDER BY b2.number DESC
     LIMIT 1
@@ -573,8 +724,14 @@ app.get('/api/books/:id/next', (req, res) => {
   let params = [id];
   
   if (collana) {
-    whereConditions.push('b2.collana = ?');
-    params.push(collana);
+    const isId = !isNaN(parseInt(collana));
+    if (isId) {
+      whereConditions.push('b2.collana_id = ?');
+      params.push(collana);
+    } else {
+      whereConditions.push('c2.nome = ?');
+      params.push(collana);
+    }
   }
   if (owned === 'true') {
     whereConditions.push('b2.owned = 1');
@@ -595,8 +752,11 @@ app.get('/api/books/:id/next', (req, res) => {
   const whereClause = whereConditions.join(' AND ');
   
   const query = `
-    SELECT b2.* FROM books b1
+    SELECT b2.*, c2.nome as collana, e2.nome as editore 
+    FROM books b1
     JOIN books b2 ON b2.number > b1.number
+    LEFT JOIN collane c2 ON c2.id = b2.collana_id
+    LEFT JOIN editori e2 ON e2.id = b2.editore_id
     WHERE ${whereClause}
     ORDER BY b2.number ASC
     LIMIT 1
@@ -626,17 +786,22 @@ app.get('/api/books/:id/position', (req, res) => {
   let params = [];
   
   if (collana) {
-    whereConditions.push('collana = ?');
-    params.push(collana);
+    const isId = !isNaN(parseInt(collana));
+    if (isId) {
+      whereConditions.push('b.collana_id = ?');
+      params.push(collana);
+    } else {\n      whereConditions.push('c.nome = ?');
+      params.push(collana);
+    }
   }
   if (owned === 'true') {
-    whereConditions.push('owned = 1');
+    whereConditions.push('b.owned = 1');
   }
   if (read === 'true') {
-    whereConditions.push('read = 1');
+    whereConditions.push('b.read = 1');
   }
   if (digital === 'true') {
-    whereConditions.push('digital = 1');
+    whereConditions.push('b.digital = 1');
   }
   
   const whereClause = whereConditions.length > 0 ? 'WHERE ' + whereConditions.join(' AND ') : '';
@@ -651,9 +816,11 @@ app.get('/api/books/:id/position', (req, res) => {
     
     // Count how many books come before this one
     const countQuery = `
-      SELECT COUNT(*) as position FROM books 
+      SELECT COUNT(*) as position 
+      FROM books b
+      LEFT JOIN collane c ON c.id = b.collana_id
       ${whereClause}
-      ${whereConditions.length > 0 ? 'AND' : 'WHERE'} number < ?
+      ${whereConditions.length > 0 ? 'AND' : 'WHERE'} b.number < ?
     `;
     
     db.get(countQuery, [...params, bookRow.number], (err, countRow) => {
@@ -675,7 +842,7 @@ app.put('/api/books/:id', (req, res) => {
   const allowedFields = [
     'title_ita', 'title_orig', 'author', 'date_pub', 'cover_author',
     'synopsis', 'owned', 'stars', 'comment', 'reprint', 'read', 
-    'collana', 'editore', 'digital'
+    'collana_id', 'editore_id', 'digital'
   ];
 
   const fieldsToUpdate = [];

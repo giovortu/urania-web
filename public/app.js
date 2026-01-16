@@ -415,8 +415,16 @@ async function loadCollane(forceRefresh = false) {
         collanaFilter.innerHTML = '<option value="">Tutte le collane</option>';
         collane.forEach(collana => {
             const option = document.createElement('option');
-            option.value = collana;
-            option.textContent = collana;
+            // Support both old format (string) and new format (object with id, nome, etc.)
+            if (typeof collana === 'string') {
+                option.value = collana;
+                option.textContent = collana;
+            } else {
+                option.value = collana.nome; // Use name for filtering (backward compatibility)
+                option.textContent = `${collana.nome} (${collana.editore_nome})`;
+                option.dataset.collanaId = collana.id;
+                option.dataset.editoreId = collana.editore_id;
+            }
             collanaFilter.appendChild(option);
         });
     } catch (error) {
@@ -951,7 +959,7 @@ async function showBookDetail(bookId) {
 }
 
 // Open edit modal
-function openEditModal() {
+async function openEditModal() {
     const book = allBooks.find(b => b.id === currentBookId);
     if (!book) return;
 
@@ -960,8 +968,6 @@ function openEditModal() {
     document.getElementById('edit-author').value = book.author || '';
     document.getElementById('edit-date-pub').value = book.date_pub || '';
     document.getElementById('edit-cover-author').value = book.cover_author || '';
-    document.getElementById('edit-editore').value = book.editore || '';
-    document.getElementById('edit-collana').value = book.collana || '';
     document.getElementById('edit-synopsis').value = book.synopsis || '';
     document.getElementById('edit-comment').value = book.comment || '';
     document.getElementById('edit-stars').value = book.stars || 0;
@@ -970,10 +976,79 @@ function openEditModal() {
     document.getElementById('edit-digital').checked = !!book.digital;
     document.getElementById('edit-reprint').checked = !!book.reprint;
 
+    // Load and populate editori dropdown
+    await loadEditoriDropdown();
+    const editoreSelect = document.getElementById('edit-editore');
+    if (book.editore_id) {
+        editoreSelect.value = book.editore_id;
+    }
+    
+    // Load and populate collane dropdown (filtered by editore if selected)
+    await loadCollaneDropdown(book.editore_id);
+    const collanaSelect = document.getElementById('edit-collana');
+    if (book.collana_id) {
+        collanaSelect.value = book.collana_id;
+    }
+    
+    // When editore changes, reload collane
+    editoreSelect.addEventListener('change', async () => {
+        const editoreId = editoreSelect.value;
+        await loadCollaneDropdown(editoreId);
+        // Reset collana selection
+        collanaSelect.value = '';
+    });
+
     // Initialize stars widget
     initializeStarsWidget(Math.floor((book.stars || 0) / 10));
 
     editModal.style.display = 'flex';
+}
+
+// Load editori for dropdown
+async function loadEditoriDropdown() {
+    try {
+        const response = await fetch('/api/editori');
+        if (!response.ok) throw new Error('Failed to load publishers');
+        const editori = await response.json();
+        
+        const editoreSelect = document.getElementById('edit-editore');
+        editoreSelect.innerHTML = '<option value="">-- Seleziona editore --</option>';
+        
+        editori.forEach(editore => {
+            const option = document.createElement('option');
+            option.value = editore.id;
+            option.textContent = editore.nome;
+            editoreSelect.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error loading publishers:', error);
+    }
+}
+
+// Load collane for dropdown (optionally filtered by editore_id)
+async function loadCollaneDropdown(editoreId = null) {
+    try {
+        let url = '/api/collane';
+        if (editoreId) {
+            url += `?editore_id=${editoreId}`;
+        }
+        
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Failed to load series');
+        const collane = await response.json();
+        
+        const collanaSelect = document.getElementById('edit-collana');
+        collanaSelect.innerHTML = '<option value="">-- Seleziona collana --</option>';
+        
+        collane.forEach(collana => {
+            const option = document.createElement('option');
+            option.value = collana.id;
+            option.textContent = `${collana.nome}${collana.editore_nome ? ' (' + collana.editore_nome + ')' : ''}`;
+            collanaSelect.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error loading series:', error);
+    }
 }
 
 // Initialize stars widget with clickable stars (supports half stars)
@@ -1124,14 +1199,17 @@ async function saveBook() {
     const starsInput = document.getElementById('edit-stars');
     const starsValue = parseInt(starsInput.value) || 0;
     
+    const editoreSelect = document.getElementById('edit-editore');
+    const collanaSelect = document.getElementById('edit-collana');
+    
     const formData = {
         title_ita: document.getElementById('edit-title-ita').value,
         title_orig: document.getElementById('edit-title-orig').value,
         author: document.getElementById('edit-author').value,
         date_pub: document.getElementById('edit-date-pub').value,
         cover_author: document.getElementById('edit-cover-author').value,
-        editore: document.getElementById('edit-editore').value,
-        collana: document.getElementById('edit-collana').value,
+        editore_id: editoreSelect.value ? parseInt(editoreSelect.value) : null,
+        collana_id: collanaSelect.value ? parseInt(collanaSelect.value) : null,
         synopsis: document.getElementById('edit-synopsis').value,
         comment: document.getElementById('edit-comment').value,
         stars: starsValue,

@@ -18,7 +18,8 @@ Recupera lista paginata di libri con filtri opzionali.
 - `page` (number, default: 1) - Numero di pagina
 - `limit` (number, default: 12) - Numero di libri per pagina
 - `search` (string) - Ricerca nel titolo italiano/originale
-- `collana` (string) - Filtra per collana
+- `collana` (string|number) - Filtra per collana (nome o ID)
+- `editore` (string|number) - Filtra per editore (nome o ID)
 - `owned` (boolean) - Filtra solo libri posseduti (`true`)
 - `notOwned` (boolean) - Filtra solo libri non posseduti (`true`)
 - `read` (boolean) - Filtra solo libri letti (`true`)
@@ -37,7 +38,9 @@ Recupera lista paginata di libri con filtri opzionali.
       "author": "Nome Autore",
       "date_pub": "1980-01-01",
       "editore": "Mondadori",
+      "editore_id": 1,
       "collana": "Urania",
+      "collana_id": 5,
       "cover_author": "Karel Thole",
       "owned": 1,
       "read": 1,
@@ -78,7 +81,9 @@ Recupera dettagli di un singolo libro.
   "author": "Nome Autore",
   "date_pub": "1980-01-01",
   "editore": "Mondadori",
+  "editore_id": 1,
   "collana": "Urania",
+  "collana_id": 5,
   "cover_author": "Karel Thole",
   "owned": 1,
   "read": 1,
@@ -107,17 +112,24 @@ Aggiorna uno o più campi di un libro (partial update).
   "owned": true,
   "read": false,
   "stars": 5,
-  "comment": "Ottimo libro!"
+  "comment": "Ottimo libro!",
+  "editore_id": 1,
+  "collana_id": 5
 }
 ```
 
 **Campi aggiornabili:**
 - `title_ita`, `title_orig` (string)
 - `author`, `date_pub`, `cover_author`, `synopsis` (string)
-- `collana`, `editore` (string)
+- `collana_id` (number|null) - ID della collana (sostituisce `collana`)
+- `editore_id` (number|null) - ID dell'editore (sostituisce `editore`)
 - `owned`, `read`, `digital`, `reprint` (boolean)
-- `stars` (number, 0-5)
+- `stars` (number, 0-50, rappresenta valutazione da 0 a 5 con mezzo punto)
 - `comment` (string)
+
+**Note:**
+- I campi `editore` e `collana` (stringhe) sono deprecati ma ancora supportati per retrocompatibilità
+- È preferibile usare `editore_id` e `collana_id` (numeri) che fanno riferimento alle nuove tabelle normalizzate
 
 **Response:**
 ```json
@@ -228,17 +240,75 @@ Recupera l'immagine della sinossi/retro del libro (cache-aware con hash validati
 
 ---
 
+## Editori
+
+### GET /api/editori
+Recupera lista di tutti gli editori presenti nel database.
+
+**Response:**
+```json
+[
+  { "id": 1, "nome": "Mondadori" },
+  { "id": 2, "nome": "Editrice Nord" },
+  { "id": 3, "nome": "Fanucci" }
+]
+```
+
+---
+
+### GET /api/books/editore/:editore
+Recupera tutti i libri di uno specifico editore.
+
+**URL Parameters:**
+- `editore` (string|number) - Nome o ID dell'editore
+
+**Response:**
+```json
+[
+  {
+    "id": 1,
+    "number": 123,
+    "title_ita": "Titolo",
+    "editore": "Mondadori",
+    "editore_id": 1,
+    "collana": "Urania",
+    "collana_id": 5,
+    ...
+  }
+]
+```
+
+---
+
 ## Collane
 
 ### GET /api/collane
 Recupera lista di tutte le collane presenti nel database.
 
+**Query Parameters:**
+- `editore_id` (number, optional) - Filtra collane per editore
+
 **Response:**
 ```json
 [
-  { "collana": "Urania" },
-  { "collana": "Millemondi" },
-  { "collana": "Oscar Fantascienza" }
+  { 
+    "id": 5, 
+    "nome": "Urania", 
+    "editore_id": 1,
+    "editore_nome": "Mondadori"
+  },
+  { 
+    "id": 12, 
+    "nome": "Millemondi", 
+    "editore_id": 1,
+    "editore_nome": "Mondadori"
+  },
+  { 
+    "id": 23, 
+    "nome": "Cosmo", 
+    "editore_id": 2,
+    "editore_nome": "Editrice Nord"
+  }
 ]
 ```
 
@@ -248,7 +318,7 @@ Recupera lista di tutte le collane presenti nel database.
 Recupera tutti i libri di una specifica collana.
 
 **URL Parameters:**
-- `collana` (string) - Nome della collana
+- `collana` (string|number) - Nome o ID della collana
 
 **Response:**
 ```json
@@ -257,6 +327,10 @@ Recupera tutti i libri di una specifica collana.
     "id": 1,
     "number": 123,
     "title_ita": "Titolo",
+    "editore": "Mondadori",
+    "editore_id": 1,
+    "collana": "Urania",
+    "collana_id": 5,
     ...
   }
 ]
@@ -428,6 +502,69 @@ La ricerca normalizza automaticamente i caratteri accentati:
 - **GET /api/books**: `Cache-Control: no-store` (sempre fresco)
 - **Immagini con hash**: `Cache-Control: public, max-age=31536000` (1 anno)
 - **Immagini senza hash**: `Cache-Control: public, max-age=86400` (1 giorno)
+
+---
+
+## Struttura Database Normalizzata
+
+A partire dalla versione con normalizzazione del database, la struttura è stata ottimizzata per ridurre la ridondanza e migliorare le performance.
+
+### Tabelle Principali
+
+#### books
+Tabella principale dei libri. Include foreign key verso `editori` e `collane`.
+
+Campi aggiunti:
+- `editore_id` (INTEGER) - Foreign key verso tabella `editori`
+- `collana_id` (INTEGER) - Foreign key verso tabella `collane`
+
+Campi deprecati (mantenuti per compatibilità):
+- `editore` (TEXT) - Stringa con nome editore
+- `collana` (TEXT) - Stringa con nome collana
+
+#### editori
+Tabella degli editori (publishers).
+
+Struttura:
+```sql
+CREATE TABLE editori (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  nome TEXT NOT NULL UNIQUE,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)
+```
+
+#### collane
+Tabella delle collane/serie, collegata agli editori.
+
+Struttura:
+```sql
+CREATE TABLE collane (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  nome TEXT NOT NULL,
+  editore_id INTEGER NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (editore_id) REFERENCES editori(id),
+  UNIQUE(nome, editore_id)
+)
+```
+
+### Migrazione
+
+Per migrare un database esistente alla nuova struttura normalizzata:
+
+```bash
+node tools/migrate_to_normalized_schema.js
+```
+
+Lo script:
+1. Crea le tabelle `editori` e `collane`
+2. Popola le nuove tabelle con dati estratti dalla tabella `books`
+3. Aggiunge i campi `editore_id` e `collana_id` alla tabella `books`
+4. Aggiorna i riferimenti nella tabella `books`
+5. Crea indici per ottimizzare le query
+
+**Nota:** I campi vecchi (`editore` e `collana` come stringhe) sono mantenuti per retrocompatibilità ma possono essere rimossi dopo la verifica completa del funzionamento.
 
 ---
 
