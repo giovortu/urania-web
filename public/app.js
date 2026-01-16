@@ -641,6 +641,9 @@ function switchViewMode(mode) {
 
 // Show book detail
 async function showBookDetail(bookId) {
+    // Salva lo stato corrente prima di navigare
+    saveState();
+    
     currentBookId = bookId;
     try {
         const response = await fetch(`/api/books/${bookId}`);
@@ -1258,6 +1261,7 @@ async function showBooksList() {
     if (currentBookId) {
         try {
             const params = new URLSearchParams({
+                ...(filters.search && { search: filters.search }),
                 ...(filters.collana && { collana: filters.collana }),
                 ...(filters.owned && { owned: 'true' }),
                 ...(filters.read && { read: 'true' }),
