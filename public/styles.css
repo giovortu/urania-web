@@ -789,6 +789,39 @@ header h1 {
     justify-content: flex-end;
     padding: 20px 30px;
     border-top: 1px solid #e9ecef;
+    position: relative;
+}
+
+/* Loader styles */
+.save-loader {
+    position: absolute;
+    left: 30px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #667eea;
+    font-weight: 500;
+}
+
+.loader-spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #667eea;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loader-text {
+    font-size: 0.95em;
+    white-space: nowrap;
 }
 
 /* Form */

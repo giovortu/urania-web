@@ -905,6 +905,13 @@ function updateStarsWidgetPreview(rating) {
 function closeModal() {
     editModal.style.display = 'none';
     editForm.reset();
+    // Nascondi il loader e riabilita i pulsanti
+    const loader = document.getElementById('save-loader');
+    const saveBtn = document.getElementById('save-btn');
+    const cancelBtn = document.getElementById('cancel-btn');
+    if (loader) loader.style.display = 'none';
+    if (saveBtn) saveBtn.disabled = false;
+    if (cancelBtn) cancelBtn.disabled = false;
 }
 
 // Save book
@@ -929,6 +936,15 @@ async function saveBook() {
         digital: document.getElementById('edit-digital').checked,
         reprint: document.getElementById('edit-reprint').checked
     };
+
+    // Mostra il loader e disabilita i pulsanti
+    const loader = document.getElementById('save-loader');
+    const saveBtn = document.getElementById('save-btn');
+    const cancelBtn = document.getElementById('cancel-btn');
+    
+    loader.style.display = 'flex';
+    saveBtn.disabled = true;
+    cancelBtn.disabled = true;
 
     try {
         const response = await fetch(`/api/books/${currentBookId}`, {
@@ -956,6 +972,11 @@ async function saveBook() {
     } catch (error) {
         console.error('Error saving book:', error);
         showError('Errore nel salvataggio del libro');
+    } finally {
+        // Nascondi il loader e riabilita i pulsanti
+        loader.style.display = 'none';
+        saveBtn.disabled = false;
+        cancelBtn.disabled = false;
     }
 }
 
