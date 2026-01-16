@@ -204,7 +204,23 @@ function attachEventListeners() {
         applyFilters();
     });
     
-    editoreFilter.addEventListener('change', () => {
+    editoreFilter.addEventListener('change', async () => {
+        // When editore changes, reload collane filtered by editore
+        const selectedEditore = editoreFilter.value;
+        
+        // Get the editore_id from the selected option
+        let editoreId = null;
+        if (selectedEditore) {
+            const selectedOption = editoreFilter.options[editoreFilter.selectedIndex];
+            editoreId = selectedOption.dataset.editoreId;
+        }
+        
+        // Reload collane filtered by editore_id
+        await loadCollane(false, editoreId);
+        
+        // Reset collana selection since the list changed
+        collanaFilter.value = '';
+        
         saveState();
         applyFilters();
     });
@@ -405,28 +421,39 @@ function displayBooksWithData(books, total, totalPages) {
 }
 
 // Load collections
-async function loadCollane(forceRefresh = false) {
+async function loadCollane(forceRefresh = false, editoreId = null) {
     try {
         let collane;
         
-        if (!forceRefresh) {
-            // Try to get collane from localStorage
+        // Build URL with optional editore_id filter
+        let url = '/api/collane';
+        if (editoreId) {
+            url += `?editore_id=${editoreId}`;
+        }
+        
+        // If filtering by editore, always fetch fresh data (don't use cache)
+        if (editoreId || forceRefresh) {
+            // Force refresh from server
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Failed to load collections');
+            collane = await response.json();
+            
+            // Only cache when not filtering
+            if (!editoreId) {
+                localStorage.setItem('collaneCache', JSON.stringify(collane));
+            }
+        } else {
+            // Try to get collane from localStorage (only when not filtering)
             const cachedCollane = localStorage.getItem('collaneCache');
             if (cachedCollane) {
                 collane = JSON.parse(cachedCollane);
             } else {
                 // Fetch from server and cache
-                const response = await fetch('/api/collane');
+                const response = await fetch(url);
                 if (!response.ok) throw new Error('Failed to load collections');
                 collane = await response.json();
                 localStorage.setItem('collaneCache', JSON.stringify(collane));
             }
-        } else {
-            // Force refresh from server
-            const response = await fetch('/api/collane');
-            if (!response.ok) throw new Error('Failed to load collections');
-            collane = await response.json();
-            localStorage.setItem('collaneCache', JSON.stringify(collane));
         }
         
         collanaFilter.innerHTML = '<option value="">Tutte le collane</option>';
