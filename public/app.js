@@ -1257,33 +1257,13 @@ function goToPage(pageNumber) {
 
 // Show books list
 async function showBooksList() {
-    // Se c'è un libro corrente, trova la pagina che lo contiene
-    if (currentBookId) {
-        try {
-            const params = new URLSearchParams({
-                ...(filters.search && { search: filters.search }),
-                ...(filters.collana && { collana: filters.collana }),
-                ...(filters.owned && { owned: 'true' }),
-                ...(filters.read && { read: 'true' }),
-                ...(filters.digital && { digital: 'true' })
-            });
-            
-            const response = await fetch(`/api/books/${currentBookId}/position?${params}`);
-            if (response.ok) {
-                const data = await response.json();
-                currentPage = Math.floor(data.position / itemsPerPage) + 1;
-                pageInput.value = currentPage;
-                pageInputTop.value = currentPage;
-            }
-        } catch (error) {
-            console.error('Error finding book page:', error);
-        }
-    }
+    // Ripristina lo stato salvato (pagina, filtri, ecc.)
+    restoreState();
     
     booksListSection.style.display = 'block';
     bookDetailSection.style.display = 'none';
     
-    // Ricarica la lista per mostrare la pagina corretta
+    // Ricarica la lista per mostrare la pagina corretta con i filtri ripristinati
     await loadBooks();
     
     currentBookId = null;
