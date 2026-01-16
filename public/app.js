@@ -59,7 +59,8 @@ function saveState() {
         collana: collanaFilter.value,
         viewMode: currentViewMode,
         currentPage: currentPage,
-        itemsPerPage: itemsPerPage
+        itemsPerPage: itemsPerPage,
+        search: filters.search || ''
     };
     localStorage.setItem('bookAppState', JSON.stringify(state));
 }
@@ -85,12 +86,19 @@ function restoreState() {
             itemsPerPage = state.itemsPerPage || 12;
             itemsPerPageSelect.value = itemsPerPage;
             
+            // Restore search filter
+            if (state.search) {
+                searchInput.value = state.search;
+                filters.search = state.search;
+            }
+            
             // Restore filters (without triggering loadBooks yet)
             filters = {
                 collana: collanaFilter.value,
                 owned: ownedFilter.checked,
                 read: readFilter.checked,
-                digital: digitalFilter.checked
+                digital: digitalFilter.checked,
+                search: state.search || ''
             };
             
             
