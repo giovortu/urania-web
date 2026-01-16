@@ -4,7 +4,7 @@ const path = require('path');
 const crypto = require('crypto');
 
 // Read database path from config
-const configPath = path.join(__dirname, '..', 'dbpath.conf');
+const configPath = path.join(__dirname, '.', 'dbpath.conf');
 const dbPathRaw = fs.readFileSync(configPath, 'utf8').trim();
 const dbPath = path.isAbsolute(dbPathRaw) ? dbPathRaw : path.join(__dirname, '..', dbPathRaw);
 
