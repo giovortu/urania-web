@@ -775,6 +775,7 @@ header h1 {
 .inline-star:hover {
     transform: scale(1.2);
     opacity: 0.6;
+    filter: grayscale(0%);
 }
 
 .inline-star.active {
@@ -1234,8 +1235,8 @@ header h1 {
 
 .stars-display.no-rating {
     color: #999;
-    opacity: 0.5;
-    font-size: 1em;
+    opacity: 0.6;
+    font-size: 1.1em;
 }
 
 .star-wrapper {

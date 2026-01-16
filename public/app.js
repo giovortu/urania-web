@@ -595,7 +595,9 @@ function generateInlineStarsWidget(starsValue) {
 
 // Format stars with half stars
 function formatStars(starsValue) {
-    if (!starsValue) return '<span class="stars-display no-rating" title="Nessuna valutazione">⭐</span>';
+    if (!starsValue) {
+        return '<span class="stars-display no-rating" title="Nessuna valutazione">★</span>';
+    }
     
     const stars = Math.min(5, parseFloat(starsValue) / 10);
     const fullStars = Math.floor(stars);
@@ -716,7 +718,30 @@ function attachInlineEditHandlers(book) {
     const starsWidget = document.querySelector('.inline-stars-widget');
     if (starsWidget) {
         const stars = starsWidget.querySelectorAll('.inline-star');
+        const originalValue = parseInt(starsWidget.dataset.value) || 0;
+        
         stars.forEach(star => {
+            star.addEventListener('mouseenter', (e) => {
+                const hoverValue = parseInt(e.target.dataset.value);
+                
+                // Reset all stars first
+                stars.forEach(s => {
+                    if (parseInt(s.dataset.value) !== 0) {
+                        s.classList.remove('active');
+                    }
+                });
+                
+                // Highlight up to hovered star
+                if (hoverValue > 0) {
+                    stars.forEach(s => {
+                        const starValue = parseInt(s.dataset.value);
+                        if (starValue > 0 && starValue <= hoverValue) {
+                            s.classList.add('active');
+                        }
+                    });
+                }
+            });
+            
             star.addEventListener('click', async (e) => {
                 const value = parseInt(e.target.dataset.value);
                 
@@ -736,6 +761,20 @@ function attachInlineEditHandlers(book) {
                 
                 // Save to database
                 await saveInlineEdit('stars', value);
+            });
+        });
+        
+        // Restore original state when mouse leaves widget
+        starsWidget.addEventListener('mouseleave', () => {
+            const currentValue = parseInt(starsWidget.dataset.value) || 0;
+            stars.forEach(s => {
+                const starValue = parseInt(s.dataset.value);
+                if (starValue === 0) return;
+                if (starValue <= currentValue) {
+                    s.classList.add('active');
+                } else {
+                    s.classList.remove('active');
+                }
             });
         });
     }
