@@ -389,6 +389,7 @@ app.get('/api/books', (req, res) => {
   const limit = parseInt(req.query.limit) || 12;
   const search = req.query.search;
   const collana = req.query.collana;
+  const editore = req.query.editore;
   const owned = req.query.owned;
   const notOwned = req.query.notOwned;
   const read = req.query.read;
@@ -411,6 +412,16 @@ app.get('/api/books', (req, res) => {
     } else {
       whereConditions.push('c.nome = ?');
       params.push(collana);
+    }
+  }
+  if (editore) {
+    const isId = !isNaN(parseInt(editore));
+    if (isId) {
+      whereConditions.push('b.editore_id = ?');
+      params.push(editore);
+    } else {
+      whereConditions.push('e.nome = ?');
+      params.push(editore);
     }
   }
   if (owned === 'true') {
