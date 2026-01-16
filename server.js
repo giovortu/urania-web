@@ -405,7 +405,8 @@ app.get('/api/books', (req, res) => {
     console.log(`[SEARCH] Query: "${search}"`);
   }
   if (collana) {
-    const isId = !isNaN(parseInt(collana));
+    // Check if it's a pure number (ID) - must be exact match
+    const isId = /^\d+$/.test(collana);
     if (isId) {
       whereConditions.push('b.collana_id = ?');
       params.push(collana);
@@ -415,7 +416,8 @@ app.get('/api/books', (req, res) => {
     }
   }
   if (editore) {
-    const isId = !isNaN(parseInt(editore));
+    // Check if it's a pure number (ID) - must be exact match
+    const isId = /^\d+$/.test(editore);
     if (isId) {
       whereConditions.push('b.editore_id = ?');
       params.push(editore);
