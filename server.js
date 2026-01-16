@@ -643,39 +643,45 @@ app.get('/api/books/:id/position', (req, res) => {
 // Update book
 app.put('/api/books/:id', (req, res) => {
   const id = req.params.id;
-  const {
-    title_ita, title_orig, author, date_pub, cover_author,
-    synopsis, owned, stars, comment, reprint, read, collana, editore, digital
-  } = req.body;
+  const updateData = req.body;
 
-  // Normalize stars to integer (0-50 expected, representing half-stars*10)
-  const starsValue = Number.isFinite(parseInt(stars, 10)) ? parseInt(stars, 10) : 0;
-
-
-  const query = `
-    UPDATE books SET
-      title_ita = ?,
-      title_orig = ?,
-      author = ?,
-      date_pub = ?,
-      cover_author = ?,
-      synopsis = ?,
-      owned = ?,
-      stars = ?,
-      comment = ?,
-      reprint = ?,
-      read = ?,
-      collana = ?,
-      editore = ?,
-      digital = ?
-    WHERE id = ?
-  `;
-
-  const params = [
-    title_ita, title_orig, author, date_pub, cover_author,
-    synopsis, owned ? 1 : 0, starsValue, comment, reprint ? 1 : 0, 
-    read ? 1 : 0, collana, editore, digital ? 1 : 0, id
+  // Build dynamic UPDATE query based on provided fields
+  const allowedFields = [
+    'title_ita', 'title_orig', 'author', 'date_pub', 'cover_author',
+    'synopsis', 'owned', 'stars', 'comment', 'reprint', 'read', 
+    'collana', 'editore', 'digital'
   ];
+
+  const fieldsToUpdate = [];
+  const params = [];
+
+  allowedFields.forEach(field => {
+    if (updateData.hasOwnProperty(field)) {
+      fieldsToUpdate.push(`${field} = ?`);
+      
+      // Handle boolean fields
+      if (['owned', 'read', 'reprint', 'digital'].includes(field)) {
+        params.push(updateData[field] ? 1 : 0);
+      }
+      // Handle stars (normalize to integer)
+      else if (field === 'stars') {
+        params.push(Number.isFinite(parseInt(updateData[field], 10)) ? parseInt(updateData[field], 10) : 0);
+      }
+      // Handle other fields as-is
+      else {
+        params.push(updateData[field]);
+      }
+    }
+  });
+
+  if (fieldsToUpdate.length === 0) {
+    res.status(400).json({ error: 'No fields to update' });
+    return;
+  }
+
+  params.push(id); // Add id as last parameter
+
+  const query = `UPDATE books SET ${fieldsToUpdate.join(', ')} WHERE id = ?`;
 
   db.run(query, params, function(err) {
     if (err) {
