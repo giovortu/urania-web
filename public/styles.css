@@ -110,6 +110,38 @@ header h1 {
     font-weight: 500;
 }
 
+.search-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-input-wrapper .search-box {
+    flex: 1;
+    padding-right: 35px;
+}
+
+.clear-search-btn {
+    position: absolute;
+    right: 8px;
+    background: none;
+    border: none;
+    color: #999;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px 8px;
+    display: none;
+    transition: color 0.2s;
+}
+
+.clear-search-btn:hover {
+    color: #f44336;
+}
+
+.search-input-wrapper .search-box:not(:placeholder-shown) ~ .clear-search-btn {
+    display: block;
+}
+
 .filter-group select,
 .filter-group input[type="text"],
 .filter-group input[type="number"] {

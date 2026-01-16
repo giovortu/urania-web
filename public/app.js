@@ -161,6 +161,21 @@ function attachEventListeners() {
         saveState();
         applyFilters();
     });
+    
+    // Clear search button
+    const clearSearchBtn = document.getElementById('clear-search-btn');
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            filters.search = '';
+            currentPage = 1;
+            pageInput.value = currentPage;
+            pageInputTop.value = currentPage;
+            saveState();
+            applyFilters();
+        });
+    }
+    
     collanaFilter.addEventListener('change', () => {
         saveState();
         applyFilters();
