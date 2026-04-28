@@ -460,13 +460,13 @@ app.get('/api/books', (req, res) => {
 // Get all unique collections (collane)
 app.get('/api/collane', (req, res) => {
   res.setHeader('Cache-Control', 'public, max-age=3600');
-  const query = `SELECT DISTINCT collana FROM books WHERE collana IS NOT NULL AND collana != '' ORDER BY collana ASC`;
+  const query = `SELECT id,nome FROM collane ORDER BY nome ASC`;
   db.all(query, (err, rows) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    res.json(rows.map(r => r.collana));
+    res.json(rows.map(r => ({ id: r.id, nome: r.nome })));
   });
 });
 

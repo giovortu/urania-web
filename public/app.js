@@ -422,7 +422,7 @@ function displayBooksWithData(books, total, totalPages) {
 }
 
 // Load collections
-async function loadCollane(forceRefresh = false) {
+async function loadCollane(forceRefresh = true) {
     try {
         let collane;
         
@@ -446,12 +446,16 @@ async function loadCollane(forceRefresh = false) {
             localStorage.setItem('collaneCache', JSON.stringify(collane));
         }
         
+        
+
         collanaFilter.innerHTML = '<option value="">Tutte le collane</option>';
         collane.forEach(collana => {
             const option = document.createElement('option');
-            option.value = collana;
-            option.textContent = collana;
+            option.value = collana.id;
+            option.textContent = collana.nome;
             collanaFilter.appendChild(option);
+            //console.log('Loaded collection:', collana);
+            
         });
     } catch (error) {
         console.error('Error loading collections:', error);
