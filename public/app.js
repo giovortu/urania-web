@@ -749,8 +749,11 @@ async function showBookDetail(bookId) {
     currentBookId = bookId;
     try {
         const response = await fetch(`/api/books/${bookId}`);
+
+        
         if (!response.ok) throw new Error('Failed to load book');
         const book = await response.json();
+        console.log( book );
 
         const detailContent = document.getElementById('book-detail-content');
         
@@ -792,11 +795,11 @@ async function showBookDetail(bookId) {
                         </div>
                         <div class="detail-row">
                             <span class="detail-label">Editore:</span>
-                            <span class="detail-value">${book.editore || 'N/A'}</span>
+                            <span class="detail-value">${book.editoreNome || 'N/A'}</span>
                         </div>
                         <div class="detail-row">
                             <span class="detail-label">Collana:</span>
-                            <span class="detail-value">${book.collana || 'N/A'}</span>
+                            <span class="detail-value">${book.collanaNome || 'N/A'}</span>
                         </div>
                         <div class="detail-row">
                             <span class="detail-label">Data Pubblicazione:</span>

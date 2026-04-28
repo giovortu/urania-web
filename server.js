@@ -486,7 +486,12 @@ app.get('/api/books/collana/:collana', (req, res) => {
 // Get single book by ID
 app.get('/api/books/:id', (req, res) => {
   const id = req.params.id;
-  const query = `SELECT * FROM books WHERE id = ?`;
+
+  //this query recover the book from ID and adds in the row the name of the collana and editore as collanaNome and editoreNome
+  const query = `SELECT b.*, c.nome as collanaNome, e.nome as editoreNome FROM books b LEFT JOIN collane c ON b.collana = c.id LEFT JOIN editori e ON b.editore = e.id WHERE b.id = ?`; 
+
+
+  
   db.get(query, [id], (err, row) => {
     if (err) {
       res.status(500).json({ error: err.message });
@@ -505,7 +510,9 @@ app.get('/api/books/:id', (req, res) => {
       read: req.query.read || '',
       notRead: req.query.notRead || '',
       digital: req.query.digital || '',
-      search: req.query.search || ''
+      search: req.query.search || '',
+      collanaNome: req.query.collanaNome || '',
+      editoreNome: req.query.editoreNome || ''
     };
     preCacheAdjacentImages(id, filters, 3, 3); // 3 ahead, 3 behind
     
