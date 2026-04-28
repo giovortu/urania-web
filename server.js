@@ -372,6 +372,7 @@ app.get('/api/books', (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 12;
   const search = req.query.search;
+  const searchNumber = req.query.searchNumber;
   const collana = req.query.collana;
   const owned = req.query.owned;
   const notOwned = req.query.notOwned;
@@ -386,6 +387,14 @@ app.get('/api/books', (req, res) => {
     whereConditions.push('(title_ita COLLATE NOCASE LIKE ? OR title_orig COLLATE NOCASE LIKE ?)');
     params.push(`%${search}%`, `%${search}%`);
     console.log(`[SEARCH] Query: "${search}"`);
+  }
+  if (searchNumber) {
+    const num = parseInt(searchNumber, 10);
+    if (!isNaN(num)) {
+      whereConditions.push('number = ?');
+      params.push(num);
+      console.log(`[SEARCH] Number: ${num}`);
+    }
   }
   if (collana) {
     whereConditions.push('collana = ?');

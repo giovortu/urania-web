@@ -12,7 +12,8 @@ let filters = {
     read: false,
     notRead: false,
     digital: false,
-    search: ''
+    search: '',
+    searchNumber: ''
 };
 
 // Funzione per normalizzare i caratteri accentati
@@ -29,6 +30,7 @@ function normalizeSearchText(text) {
 // DOM Elements
 const booksList = document.getElementById('books-list');
 const searchInput = document.getElementById('search-input');
+const numberSearchInput = document.getElementById('number-search-input');
 const collanaFilter = document.getElementById('collana-filter');
 const ownedFilter = document.getElementById('owned-filter');
 const notOwnedFilter = document.getElementById('not-owned-filter');
@@ -75,7 +77,8 @@ function saveState() {
         viewMode: currentViewMode,
         currentPage: currentPage,
         itemsPerPage: itemsPerPage,
-        search: filters.search || ''
+        search: filters.search || '',
+        searchNumber: filters.searchNumber || ''
     };
     localStorage.setItem('bookAppState', JSON.stringify(state));
 }
@@ -106,6 +109,10 @@ function restoreState() {
                 searchInput.value = state.search;
                 filters.search = state.search;
             }
+            if (state.searchNumber) {
+                if (numberSearchInput) numberSearchInput.value = state.searchNumber;
+                filters.searchNumber = state.searchNumber;
+            }
             
             // Restore filters (without triggering loadBooks yet)
             filters = {
@@ -113,7 +120,8 @@ function restoreState() {
                 owned: ownedFilter.checked,
                 read: readFilter.checked,
                 digital: digitalFilter.checked,
-                search: state.search || ''
+                search: state.search || '',
+                searchNumber: state.searchNumber || ''
             };
             
             
@@ -176,6 +184,31 @@ function attachEventListeners() {
         saveState();
         applyFilters();
     });
+    
+    // Number search input
+    if (numberSearchInput) {
+        numberSearchInput.addEventListener('input', (e) => {
+            filters.searchNumber = e.target.value.trim();
+            currentPage = 1;
+            pageInput.value = currentPage;
+            pageInputTop.value = currentPage;
+            saveState();
+            applyFilters();
+        });
+
+        const clearNumberBtn = document.getElementById('clear-number-btn');
+        if (clearNumberBtn) {
+            clearNumberBtn.addEventListener('click', () => {
+                numberSearchInput.value = '';
+                filters.searchNumber = '';
+                currentPage = 1;
+                pageInput.value = currentPage;
+                pageInputTop.value = currentPage;
+                saveState();
+                applyFilters();
+            });
+        }
+    }
     
     // Clear search button
     const clearSearchBtn = document.getElementById('clear-search-btn');
@@ -340,6 +373,7 @@ async function loadBooks() {
             limit: itemsPerPage,
             _ts: Date.now(), // cache buster per evitare risposte stale
             ...(filters.search && { search: filters.search }),
+            ...(filters.searchNumber && { searchNumber: filters.searchNumber }),
             ...(filters.collana && { collana: filters.collana }),
             ...(filters.owned && { owned: 'true' }),
             ...(filters.notOwned && { notOwned: 'true' }),
@@ -433,7 +467,8 @@ function applyFilters() {
         read: readFilter.checked,
         notRead: notReadFilter.checked,
         digital: digitalFilter.checked,
-        search: filters.search
+        search: filters.search,
+        searchNumber: filters.searchNumber
     };
 
     currentPage = 1;
@@ -445,12 +480,15 @@ function applyFilters() {
 // Reset filters
 function resetFilters() {
     searchInput.value = '';
+    if (numberSearchInput) numberSearchInput.value = '';
     collanaFilter.value = '';
     ownedFilter.checked = false;
     notOwnedFilter.checked = false;
     readFilter.checked = false;
     notReadFilter.checked = false;
     digitalFilter.checked = false;
+    filters.search = '';
+    filters.searchNumber = '';
     applyFilters();
 }
 
