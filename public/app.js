@@ -45,12 +45,21 @@ const bookDetailSection = document.getElementById('book-detail-section');
 const backBtn = document.getElementById('back-btn');
 const editModal = document.getElementById('edit-modal');
 const editForm = document.getElementById('edit-form');
+const createModal = document.getElementById('create-modal');
+const createForm = document.getElementById('create-form');
 const sidebar = document.getElementById('sidebar');
 const menuToggle = document.getElementById('menu-toggle');
 const closeSidebar = document.getElementById('close-sidebar');
 const saveBtn = document.getElementById('save-btn');
 const cancelBtn = document.getElementById('cancel-btn');
-const closeModalBtn = document.querySelector('.close-modal');
+const closeEditModalBtn = document.getElementById('close-edit-modal');
+const newBookBtn = document.getElementById('new-book-btn');
+const createSaveBtn = document.getElementById('create-save-btn');
+const createCancelBtn = document.getElementById('create-cancel-btn');
+const closeCreateModalBtn = document.getElementById('close-create-modal');
+const createUseNewCollana = document.getElementById('create-use-new-collana');
+const createCollanaSelect = document.getElementById('create-collana-select');
+const newCollanaFields = document.getElementById('new-collana-fields');
 const totalBooksSpan = document.getElementById('total-books');
 const totalOwnedSpan = document.getElementById('total-owned');
 const totalReadSpan = document.getElementById('total-read');
@@ -69,6 +78,8 @@ const totalPagesSpanTop = document.getElementById('total-pages-top');
 const itemsPerPageSelect = document.getElementById('items-per-page');
 const reloadBtn = document.getElementById('reload-btn');
 const hardReloadBtn = document.getElementById('hard-reload-btn');
+const importWebBtn = document.getElementById('import-web-btn');
+const deleteBookBtn = document.getElementById('delete-book-btn');
 
 // State management for localStorage
 function saveState() {
@@ -261,9 +272,30 @@ function attachEventListeners() {
     viewListBtn.addEventListener('click', () => switchViewMode('list'));
     viewGridBtn.addEventListener('click', () => switchViewMode('grid'));
     backBtn.addEventListener('click', showBooksList);
-    closeModalBtn.addEventListener('click', closeModal);
+    closeEditModalBtn.addEventListener('click', closeModal);
     cancelBtn.addEventListener('click', closeModal);
     saveBtn.addEventListener('click', saveBook);
+    if (newBookBtn) {
+        newBookBtn.addEventListener('click', openCreateModal);
+    }
+    if (importWebBtn) {
+        importWebBtn.addEventListener('click', importBookFromWeb);
+    }
+    if (deleteBookBtn) {
+        deleteBookBtn.addEventListener('click', deleteCurrentBook);
+    }
+    if (createSaveBtn) {
+        createSaveBtn.addEventListener('click', saveNewBook);
+    }
+    if (createCancelBtn) {
+        createCancelBtn.addEventListener('click', closeCreateModal);
+    }
+    if (closeCreateModalBtn) {
+        closeCreateModalBtn.addEventListener('click', closeCreateModal);
+    }
+    if (createUseNewCollana) {
+        createUseNewCollana.addEventListener('change', toggleNewCollanaFields);
+    }
     itemsPerPageSelect.addEventListener('change', () => {
         const oldItemsPerPage = itemsPerPage;
         let newValue = parseInt(itemsPerPageSelect.value);
@@ -401,6 +433,128 @@ async function loadBooks() {
     }
 }
 
+async function importBookFromWeb() {
+    const collanaId = parseInt(collanaFilter.value, 10);
+    if (!Number.isInteger(collanaId) || collanaId <= 0) {
+        showError('Seleziona prima una collana dai filtri');
+        return;
+    }
+
+    const sourceUrl = window.prompt('Inserisci l\'URL della pagina HTML da importare');
+    if (!sourceUrl || !sourceUrl.trim()) {
+        return;
+    }
+
+    const loaderOverlay = document.getElementById('save-loader-overlay');
+    const loaderText = loaderOverlay ? loaderOverlay.querySelector('.loader-text') : null;
+    const previousLoaderText = loaderText ? loaderText.textContent : '';
+
+    if (loaderText) {
+        loaderText.textContent = 'Importazione in corso...';
+    }
+    if (loaderOverlay) {
+        loaderOverlay.style.display = 'flex';
+    }
+
+    try {
+        const response = await fetch('/api/import/web', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                url: sourceUrl.trim(),
+                collanaId
+            })
+        });
+
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(result.error || 'Errore durante l\'importazione');
+        }
+
+        filters.collana = String(collanaId);
+        collanaFilter.value = String(collanaId);
+        currentPage = 1;
+        pageInput.value = currentPage;
+        pageInputTop.value = currentPage;
+        saveState();
+
+        await loadBooks();
+
+        if (result.book?.id) {
+            allBooks = [result.book, ...allBooks.filter(book => book.id !== result.book.id)];
+            await showBookDetail(result.book.id);
+        }
+
+        showSuccess(`Libro importato: ${result.book?.title_ita || result.book?.title_orig || 'senza titolo'}`);
+    } catch (error) {
+        console.error('Error importing book from web:', error);
+        showError(error.message || 'Errore durante l\'importazione');
+    } finally {
+        if (loaderText) {
+            loaderText.textContent = previousLoaderText;
+        }
+        if (loaderOverlay) {
+            loaderOverlay.style.display = 'none';
+        }
+    }
+}
+
+async function deleteCurrentBook() {
+    if (!currentBookId) {
+        showError('Nessun libro selezionato');
+        return;
+    }
+
+    const confirmed = window.confirm('Eliminare definitivamente questo libro dal database? Verranno rimossi anche i dati collegati.');
+    if (!confirmed) {
+        return;
+    }
+
+    const bookIdToDelete = currentBookId;
+    const loaderOverlay = document.getElementById('save-loader-overlay');
+    const loaderText = loaderOverlay ? loaderOverlay.querySelector('.loader-text') : null;
+    const previousLoaderText = loaderText ? loaderText.textContent : '';
+
+    if (loaderText) {
+        loaderText.textContent = 'Eliminazione in corso...';
+    }
+    if (loaderOverlay) {
+        loaderOverlay.style.display = 'flex';
+    }
+
+    try {
+        const response = await fetch(`/api/books/${bookIdToDelete}`, {
+            method: 'DELETE'
+        });
+
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(result.error || 'Errore durante l\'eliminazione');
+        }
+
+        allBooks = allBooks.filter(book => book.id !== bookIdToDelete);
+        if (allBooks.length === 0 && currentPage > 1) {
+            currentPage -= 1;
+        }
+
+        await showBooksList();
+        updateStats();
+        showSuccess('Libro eliminato con successo');
+    } catch (error) {
+        console.error('Error deleting book:', error);
+        showError(error.message || 'Errore durante l\'eliminazione del libro');
+    } finally {
+        if (loaderText) {
+            loaderText.textContent = previousLoaderText;
+        }
+        if (loaderOverlay) {
+            loaderOverlay.style.display = 'none';
+        }
+    }
+}
+
 // Display books with pagination data from server
 function displayBooksWithData(books, total, totalPages) {
     booksList.innerHTML = '';
@@ -419,6 +573,38 @@ function displayBooksWithData(books, total, totalPages) {
     });
 
     updatePagination(totalPages);
+}
+
+function populateCollanaOptions(collane) {
+    const selectedFilterValue = collanaFilter.value;
+    const selectedCreateValue = createCollanaSelect ? createCollanaSelect.value : '';
+
+    collanaFilter.innerHTML = '<option value="">Tutte le collane</option>';
+    if (createCollanaSelect) {
+        createCollanaSelect.innerHTML = '<option value="">Seleziona una collana</option>';
+    }
+
+    collane.forEach(collana => {
+        const filterOption = document.createElement('option');
+        filterOption.value = collana.id;
+        filterOption.textContent = collana.nome;
+        collanaFilter.appendChild(filterOption);
+
+        if (createCollanaSelect) {
+            const createOption = document.createElement('option');
+            createOption.value = collana.id;
+            createOption.textContent = collana.nome;
+            createCollanaSelect.appendChild(createOption);
+        }
+    });
+
+    if ([...collanaFilter.options].some(option => option.value === selectedFilterValue)) {
+        collanaFilter.value = selectedFilterValue;
+    }
+
+    if (createCollanaSelect && [...createCollanaSelect.options].some(option => option.value === selectedCreateValue)) {
+        createCollanaSelect.value = selectedCreateValue;
+    }
 }
 
 // Load collections
@@ -445,20 +631,11 @@ async function loadCollane(forceRefresh = true) {
             collane = await response.json();
             localStorage.setItem('collaneCache', JSON.stringify(collane));
         }
-        
-        
-
-        collanaFilter.innerHTML = '<option value="">Tutte le collane</option>';
-        collane.forEach(collana => {
-            const option = document.createElement('option');
-            option.value = collana.id;
-            option.textContent = collana.nome;
-            collanaFilter.appendChild(option);
-            //console.log('Loaded collection:', collana);
-            
-        });
+        populateCollanaOptions(collane);
+        return collane;
     } catch (error) {
         console.error('Error loading collections:', error);
+        return [];
     }
 }
 
@@ -857,10 +1034,10 @@ async function showBookDetail(bookId) {
                 </div>
             </div>
 
-            ${book.synopsis ? `
+            ${(book.synopsis || book.synopsis_image) ? `
             <div class="detail-section">
                 <h3>Sinossi</h3>
-                <p>${book.synopsis}</p>
+                ${book.synopsis ? `<p>${book.synopsis}</p>` : ''}
                 ${synopsisImageHtml}
             </div>
             ` : ''}
@@ -1021,6 +1198,17 @@ function openEditModal() {
     editModal.style.display = 'flex';
 }
 
+function openCreateModal() {
+    createForm.reset();
+    toggleNewCollanaFields();
+
+    if (filters.collana && createCollanaSelect) {
+        createCollanaSelect.value = filters.collana;
+    }
+
+    createModal.style.display = 'flex';
+}
+
 // Initialize stars widget with clickable stars (supports half stars)
 function initializeStarsWidget(currentRating) {
     const widget = document.getElementById('edit-stars-widget');
@@ -1161,6 +1349,127 @@ function closeModal() {
     // Nascondi il loader overlay se ancora visibile
     const loaderOverlay = document.getElementById('save-loader-overlay');
     if (loaderOverlay) loaderOverlay.style.display = 'none';
+}
+
+function closeCreateModal() {
+    createModal.style.display = 'none';
+    createForm.reset();
+    toggleNewCollanaFields();
+    const loaderOverlay = document.getElementById('save-loader-overlay');
+    if (loaderOverlay) loaderOverlay.style.display = 'none';
+}
+
+function toggleNewCollanaFields() {
+    const useNewCollana = !!(createUseNewCollana && createUseNewCollana.checked);
+
+    if (newCollanaFields) {
+        newCollanaFields.style.display = useNewCollana ? 'block' : 'none';
+    }
+
+    if (createCollanaSelect) {
+        createCollanaSelect.disabled = useNewCollana;
+    }
+}
+
+function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('Errore durante la lettura dell\'immagine'));
+        reader.readAsDataURL(file);
+    });
+}
+
+async function saveNewBook() {
+    const coverFile = document.getElementById('create-cover-image').files[0];
+    const starsValue = parseInt(document.getElementById('create-stars').value, 10);
+    const useNewCollana = !!document.getElementById('create-use-new-collana').checked;
+
+    const formData = {
+        number: parseInt(document.getElementById('create-number').value, 10),
+        title_ita: document.getElementById('create-title-ita').value.trim(),
+        title_orig: document.getElementById('create-title-orig').value.trim(),
+        author: document.getElementById('create-author').value.trim(),
+        date_pub: document.getElementById('create-date-pub').value || null,
+        cover_author: document.getElementById('create-cover-author').value.trim(),
+        synopsis: document.getElementById('create-synopsis').value.trim(),
+        comment: document.getElementById('create-comment').value.trim(),
+        stars: Number.isFinite(starsValue) ? starsValue : 0,
+        owned: document.getElementById('create-owned').checked,
+        read: document.getElementById('create-read').checked,
+        digital: document.getElementById('create-digital').checked,
+        reprint: document.getElementById('create-reprint').checked,
+        useNewCollana
+    };
+
+    if (useNewCollana) {
+        formData.newCollanaName = document.getElementById('create-new-collana-name').value.trim();
+        formData.newEditoreName = document.getElementById('create-new-editore-name').value.trim();
+    } else {
+        formData.collanaId = parseInt(document.getElementById('create-collana-select').value, 10);
+    }
+
+    const loaderOverlay = document.getElementById('save-loader-overlay');
+    const loaderText = loaderOverlay ? loaderOverlay.querySelector('.loader-text') : null;
+    const previousLoaderText = loaderText ? loaderText.textContent : '';
+
+    if (loaderText) {
+        loaderText.textContent = 'Creazione libro in corso...';
+    }
+    if (loaderOverlay) {
+        loaderOverlay.style.display = 'flex';
+    }
+
+    try {
+        if (coverFile) {
+            formData.coverImage = await readFileAsDataUrl(coverFile);
+        }
+
+        const response = await fetch('/api/books', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(result.error || 'Errore durante la creazione del libro');
+        }
+
+        await loadCollane(true);
+
+        if (result.book?.collana) {
+            filters.collana = String(result.book.collana);
+            collanaFilter.value = String(result.book.collana);
+        }
+
+        currentPage = 1;
+        pageInput.value = currentPage;
+        pageInputTop.value = currentPage;
+        saveState();
+
+        closeCreateModal();
+        await loadBooks();
+
+        if (result.book?.id) {
+            allBooks = [result.book, ...allBooks.filter(book => book.id !== result.book.id)];
+            await showBookDetail(result.book.id);
+        }
+
+        showSuccess('Libro creato con successo');
+    } catch (error) {
+        console.error('Error creating book:', error);
+        showError(error.message || 'Errore durante la creazione del libro');
+    } finally {
+        if (loaderText) {
+            loaderText.textContent = previousLoaderText;
+        }
+        if (loaderOverlay) {
+            loaderOverlay.style.display = 'none';
+        }
+    }
 }
 
 // Save book

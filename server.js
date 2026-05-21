@@ -5,6 +5,7 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const { parseBookFromHtml } = require('./service/htmlImportParser');
 
 const app = express();
 const PORT = 3100;
@@ -23,8 +24,8 @@ const synopsisCacheDir = path.join(cacheDir, 'synopsis');
 
 // Middleware
 app.use(cors());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static('public'));
 
 // Database setup - read path from configuration file
@@ -53,6 +54,142 @@ const db = new sqlite3.Database(dbPath, sqlite3.OPEN_READWRITE, (err) => {
     initializeDatabase();
   }
 });
+
+function dbGet(sql, params = []) {
+  return new Promise((resolve, reject) => {
+    db.get(sql, params, (err, row) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+
+      resolve(row);
+    });
+  });
+}
+
+function dbRun(sql, params = []) {
+  return new Promise((resolve, reject) => {
+    db.run(sql, params, function onRun(err) {
+      if (err) {
+        reject(err);
+        return;
+      }
+
+      resolve(this);
+    });
+  });
+}
+
+async function fetchRemoteText(url) {
+  const response = await fetch(url, {
+    headers: {
+      'User-Agent': 'Mozilla Firefox'
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Errore HTTP ${response.status} durante il download della pagina`);
+  }
+
+  return response.text();
+}
+
+async function fetchRemoteBuffer(url) {
+  const response = await fetch(url, {
+    headers: {
+      'User-Agent': 'Mozilla Firefox'
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Errore HTTP ${response.status} durante il download dell'immagine`);
+  }
+
+  return Buffer.from(await response.arrayBuffer());
+}
+
+function getImageContentType(imageBuffer) {
+  if (!imageBuffer || imageBuffer.length < 4) {
+    return 'application/octet-stream';
+  }
+
+  if (imageBuffer[0] === 0xff && imageBuffer[1] === 0xd8) {
+    return 'image/jpeg';
+  }
+
+  if (
+    imageBuffer[0] === 0x89 &&
+    imageBuffer[1] === 0x50 &&
+    imageBuffer[2] === 0x4e &&
+    imageBuffer[3] === 0x47
+  ) {
+    return 'image/png';
+  }
+
+  if (imageBuffer.subarray(0, 4).toString('ascii') === 'RIFF' && imageBuffer.subarray(8, 12).toString('ascii') === 'WEBP') {
+    return 'image/webp';
+  }
+
+  if (imageBuffer.subarray(0, 3).toString('ascii') === 'GIF') {
+    return 'image/gif';
+  }
+
+  return 'application/octet-stream';
+}
+
+function parseBase64Image(dataUrl) {
+  if (typeof dataUrl !== 'string' || !dataUrl.trim()) {
+    return Buffer.alloc(0);
+  }
+
+  const match = dataUrl.match(/^data:.*;base64,(.+)$/);
+  if (!match) {
+    const error = new Error('Formato immagine non valido');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return Buffer.from(match[1], 'base64');
+}
+
+async function getOrCreateEditore(nome) {
+  const normalizedName = typeof nome === 'string' ? nome.trim() : '';
+  if (!normalizedName) {
+    throw new Error('Editore mancante');
+  }
+
+  const existing = await dbGet('SELECT id FROM editori WHERE LOWER(nome) = LOWER(?)', [normalizedName]);
+  if (existing) {
+    return existing.id;
+  }
+
+  const inserted = await dbRun('INSERT INTO editori (nome) VALUES (?)', [normalizedName]);
+  return inserted.lastID;
+}
+
+async function getOrCreateCollana(nome, editoreId) {
+  const normalizedName = typeof nome === 'string' ? nome.trim() : '';
+  if (!normalizedName) {
+    throw new Error('Collana mancante');
+  }
+
+  const existing = await dbGet(
+    'SELECT id FROM collane WHERE LOWER(nome) = LOWER(?) AND editore = ?',
+    [normalizedName, editoreId]
+  );
+
+  if (existing) {
+    return existing.id;
+  }
+
+  const inserted = await dbRun(
+    'INSERT INTO collane (nome, editore) VALUES (?, ?)',
+    [normalizedName, editoreId]
+  );
+
+  return inserted.lastID;
+}
 
 // Initialize database schema (add hash columns if missing)
 function initializeDatabase() {
@@ -363,6 +500,166 @@ function preloadBookCache(bookId) {
 }
 
 // API Routes
+
+app.post('/api/books', async (req, res) => {
+  const payload = req.body || {};
+  const number = parseInt(payload.number, 10);
+  const stars = parseInt(payload.stars, 10);
+  const titleIta = typeof payload.title_ita === 'string' ? payload.title_ita.trim() : '';
+  const titleOrig = typeof payload.title_orig === 'string' ? payload.title_orig.trim() : '';
+  const author = typeof payload.author === 'string' ? payload.author.trim() : '';
+  const coverAuthor = typeof payload.cover_author === 'string' && payload.cover_author.trim()
+    ? payload.cover_author.trim()
+    : 'N/A';
+  const synopsis = typeof payload.synopsis === 'string' ? payload.synopsis.trim() : '';
+  const comment = typeof payload.comment === 'string' ? payload.comment.trim() : '';
+  const useNewCollana = Boolean(payload.useNewCollana);
+
+  if (!Number.isInteger(number) || number <= 0) {
+    res.status(400).json({ error: 'Numero non valido' });
+    return;
+  }
+
+  if (!titleIta) {
+    res.status(400).json({ error: 'Titolo italiano obbligatorio' });
+    return;
+  }
+
+  if (!author) {
+    res.status(400).json({ error: 'Autore obbligatorio' });
+    return;
+  }
+
+  let transactionStarted = false;
+
+  try {
+    let collanaId;
+    let editoreId;
+
+    if (useNewCollana) {
+      const newCollanaName = typeof payload.newCollanaName === 'string' ? payload.newCollanaName.trim() : '';
+      const newEditoreName = typeof payload.newEditoreName === 'string' ? payload.newEditoreName.trim() : '';
+
+      if (!newCollanaName) {
+        const error = new Error('Nome nuova collana obbligatorio');
+        error.statusCode = 400;
+        throw error;
+      }
+
+      if (!newEditoreName) {
+        const error = new Error('Editore obbligatorio per la nuova collana');
+        error.statusCode = 400;
+        throw error;
+      }
+
+      await dbRun('BEGIN TRANSACTION');
+      transactionStarted = true;
+
+      editoreId = await getOrCreateEditore(newEditoreName);
+      collanaId = await getOrCreateCollana(newCollanaName, editoreId);
+    } else {
+      collanaId = parseInt(payload.collanaId, 10);
+      if (!Number.isInteger(collanaId) || collanaId <= 0) {
+        const error = new Error('Seleziona una collana valida');
+        error.statusCode = 400;
+        throw error;
+      }
+
+      await dbRun('BEGIN TRANSACTION');
+      transactionStarted = true;
+
+      const collanaRow = await dbGet('SELECT id, editore FROM collane WHERE id = ?', [collanaId]);
+      if (!collanaRow) {
+        const error = new Error('Collana non trovata');
+        error.statusCode = 404;
+        throw error;
+      }
+
+      editoreId = collanaRow.editore;
+    }
+
+    const existingBook = await dbGet(
+      'SELECT id FROM books WHERE LOWER(title_ita) = LOWER(?) AND LOWER(author) = LOWER(?) AND collana = ?',
+      [titleIta, author, collanaId]
+    );
+
+    if (existingBook) {
+      const error = new Error('Il libro esiste gia in questa collana');
+      error.statusCode = 409;
+      error.bookId = existingBook.id;
+      throw error;
+    }
+
+    const coverImage = payload.coverImage ? parseBase64Image(payload.coverImage) : Buffer.alloc(0);
+    const coverHash = coverImage.length > 0 ? getImageHash(coverImage) : '';
+
+    const insertResult = await dbRun(
+      `INSERT INTO books (
+        number, title_ita, title_orig, author, date_pub, cover_author, cover_image,
+        synopsis, synopsis_image, owned, stars, comment, reprint, read, digital,
+        cover_hash, synopsis_hash, editore, collana
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        number,
+        titleIta,
+        titleOrig || titleIta,
+        author,
+        payload.date_pub || null,
+        coverAuthor,
+        coverImage,
+        synopsis,
+        Buffer.alloc(0),
+        payload.owned ? 1 : 0,
+        Number.isInteger(stars) ? stars : 0,
+        comment,
+        payload.reprint ? 1 : 0,
+        payload.read ? 1 : 0,
+        payload.digital ? 1 : 0,
+        coverHash,
+        '',
+        editoreId,
+        collanaId
+      ]
+    );
+
+    await dbRun('COMMIT');
+    transactionStarted = false;
+
+    const createdBook = await dbGet(
+      `SELECT b.*, c.nome AS collanaNome, e.nome AS editoreNome
+       FROM books b
+       LEFT JOIN collane c ON b.collana = c.id
+       LEFT JOIN editori e ON b.editore = e.id
+       WHERE b.id = ?`,
+      [insertResult.lastID]
+    );
+
+    res.status(201).json({
+      message: 'Libro creato con successo',
+      book: createdBook
+    });
+  } catch (error) {
+    if (transactionStarted) {
+      try {
+        await dbRun('ROLLBACK');
+      } catch (rollbackError) {
+        console.error('Rollback failed while creating book:', rollbackError);
+      }
+    }
+
+    if (error.statusCode) {
+      const responseBody = { error: error.message };
+      if (error.bookId) {
+        responseBody.id = error.bookId;
+      }
+      res.status(error.statusCode).json(responseBody);
+      return;
+    }
+
+    console.error('Error creating book:', error);
+    res.status(500).json({ error: 'Errore durante la creazione del libro' });
+  }
+});
 
 // Get all books with pagination
 app.get('/api/books', (req, res) => {
@@ -736,6 +1033,205 @@ app.put('/api/books/:id', (req, res) => {
   });
 });
 
+app.delete('/api/books/:id', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+
+  if (!Number.isInteger(id) || id <= 0) {
+    res.status(400).json({ error: 'ID libro non valido' });
+    return;
+  }
+
+  let transactionStarted = false;
+
+  try {
+    await dbRun('BEGIN TRANSACTION');
+    transactionStarted = true;
+
+    await dbRun('DELETE FROM indexes WHERE id = ?', [id]);
+    const deleteResult = await dbRun('DELETE FROM books WHERE id = ?', [id]);
+
+    if (!deleteResult.changes) {
+      const notFoundError = new Error('Book not found');
+      notFoundError.statusCode = 404;
+      throw notFoundError;
+    }
+
+    await dbRun('COMMIT');
+    transactionStarted = false;
+
+    clearBookCache(id);
+
+    res.json({
+      id,
+      message: 'Book deleted successfully'
+    });
+  } catch (error) {
+    if (transactionStarted) {
+      try {
+        await dbRun('ROLLBACK');
+      } catch (rollbackError) {
+        console.error('Rollback failed while deleting book:', rollbackError);
+      }
+    }
+
+    if (error.statusCode === 404) {
+      res.status(404).json({ error: 'Libro non trovato' });
+      return;
+    }
+
+    console.error('Error deleting book:', error);
+    res.status(500).json({ error: 'Errore durante l\'eliminazione del libro' });
+  }
+});
+
+app.post('/api/import/web', async (req, res) => {
+  const sourceUrl = typeof req.body?.url === 'string' ? req.body.url.trim() : '';
+  const collanaId = parseInt(req.body?.collanaId, 10);
+
+  if (!sourceUrl) {
+    res.status(400).json({ error: 'URL mancante' });
+    return;
+  }
+
+  if (!Number.isInteger(collanaId) || collanaId <= 0) {
+    res.status(400).json({ error: 'Collana non valida' });
+    return;
+  }
+
+  try {
+    const collana = await dbGet(
+      `SELECT c.id, c.nome, c.editore, e.nome AS editoreNome
+       FROM collane c
+       LEFT JOIN editori e ON e.id = c.editore
+       WHERE c.id = ?`,
+      [collanaId]
+    );
+
+    if (!collana) {
+      res.status(404).json({ error: 'Collana non trovata' });
+      return;
+    }
+
+    const html = await fetchRemoteText(sourceUrl);
+    const parsedBook = parseBookFromHtml(html, {
+      baseUrl: sourceUrl,
+      collanaName: collana.nome
+    });
+
+    const book = {
+      number: Number.isInteger(parsedBook.number) ? parsedBook.number : 0,
+      title_ita: parsedBook.title_ita || '',
+      title_orig: parsedBook.title_orig || parsedBook.title_ita || '',
+      author: parsedBook.author || '',
+      date_pub: parsedBook.date_pub || null,
+      cover_author: parsedBook.cover_author || 'N/A',
+      synopsis: parsedBook.synopsis || '',
+      owned: 0,
+      stars: 0,
+      comment: '',
+      reprint: 0,
+      read: 0,
+      digital: 0,
+      collana: collana.id,
+      editore: collana.editore,
+      index: parsedBook.index || []
+    };
+
+    if (!book.title_ita || !book.author) {
+      res.status(422).json({ error: 'Parsing incompleto: titolo o autore non trovati nella pagina HTML' });
+      return;
+    }
+
+    const existingBook = await dbGet(
+      'SELECT id FROM books WHERE LOWER(title_ita) = LOWER(?) AND LOWER(author) = LOWER(?) AND collana = ?',
+      [book.title_ita, book.author, book.collana]
+    );
+
+    if (existingBook) {
+      res.status(409).json({ error: 'Il libro esiste gia in questa collana', id: existingBook.id });
+      return;
+    }
+
+    let coverImage = Buffer.alloc(0);
+    if (parsedBook.coverImageUrl) {
+      try {
+        coverImage = await fetchRemoteBuffer(parsedBook.coverImageUrl);
+      } catch (error) {
+        console.warn('Cover download failed:', error.message);
+      }
+    }
+
+    let synopsisImage = Buffer.alloc(0);
+    if (!book.synopsis && parsedBook.synopsisImageUrl) {
+      try {
+        synopsisImage = await fetchRemoteBuffer(parsedBook.synopsisImageUrl);
+      } catch (error) {
+        console.warn('Synopsis image download failed:', error.message);
+      }
+    }
+
+    const coverHash = coverImage.length > 0 ? getImageHash(coverImage) : '';
+    const synopsisHash = synopsisImage.length > 0 ? getImageHash(synopsisImage) : '';
+
+    const insertResult = await dbRun(
+      `INSERT INTO books (
+        number, title_ita, title_orig, author, date_pub, cover_author, cover_image,
+        synopsis, synopsis_image, owned, stars, comment, reprint, read, digital,
+        cover_hash, synopsis_hash, editore, collana
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        book.number,
+        book.title_ita,
+        book.title_orig,
+        book.author,
+        book.date_pub,
+        book.cover_author,
+        coverImage,
+        book.synopsis,
+        synopsisImage,
+        book.owned,
+        book.stars,
+        book.comment,
+        book.reprint,
+        book.read,
+        book.digital,
+        coverHash,
+        synopsisHash,
+        book.editore,
+        book.collana
+      ]
+    );
+
+    for (const indexEntry of book.index) {
+      if (!indexEntry || (!indexEntry.title && !indexEntry.author)) {
+        continue;
+      }
+
+      await dbRun(
+        'INSERT INTO indexes (id, title, author) VALUES (?, ?, ?)',
+        [insertResult.lastID, indexEntry.title || '', indexEntry.author || '']
+      );
+    }
+
+    const importedBook = await dbGet(
+      `SELECT b.*, c.nome AS collanaNome, e.nome AS editoreNome
+       FROM books b
+       LEFT JOIN collane c ON b.collana = c.id
+       LEFT JOIN editori e ON b.editore = e.id
+       WHERE b.id = ?`,
+      [insertResult.lastID]
+    );
+
+    res.status(201).json({
+      message: 'Libro importato con successo',
+      book: importedBook
+    });
+  } catch (error) {
+    console.error('Error importing book from web:', error);
+    res.status(500).json({ error: 'Errore durante l\'importazione dal web' });
+  }
+});
+
 // Get book comments/indexes
 app.get('/api/indexes/:bookId', (req, res) => {
   const bookId = req.params.bookId;
@@ -756,7 +1252,7 @@ app.get('/api/books/:id/cover', (req, res) => {
   // Check cache first
   const cachedImage = getCacheImage(id, 'cover');
   if (cachedImage) {
-    res.setHeader('Content-Type', 'image/jpeg');
+    res.setHeader('Content-Type', getImageContentType(cachedImage));
     res.setHeader('Cache-Control', 'public, max-age=3600');
     res.send(cachedImage);
     return;
@@ -778,7 +1274,7 @@ app.get('/api/books/:id/cover', (req, res) => {
     // Save to cache
     saveCacheImage(id, 'cover', row.cover_image);
     
-    res.setHeader('Content-Type', 'image/jpeg');
+    res.setHeader('Content-Type', getImageContentType(row.cover_image));
     res.setHeader('Cache-Control', 'public, max-age=3600');
     res.send(row.cover_image);
   });
@@ -791,7 +1287,7 @@ app.get('/api/books/:id/synopsis-image', (req, res) => {
   // Check cache first
   const cachedImage = getCacheImage(id, 'synopsis');
   if (cachedImage) {
-    res.setHeader('Content-Type', 'image/jpeg');
+    res.setHeader('Content-Type', getImageContentType(cachedImage));
     res.setHeader('Cache-Control', 'public, max-age=3600');
     res.send(cachedImage);
     return;
@@ -813,7 +1309,7 @@ app.get('/api/books/:id/synopsis-image', (req, res) => {
     // Save to cache
     saveCacheImage(id, 'synopsis', row.synopsis_image);
     
-    res.setHeader('Content-Type', 'image/jpeg');
+    res.setHeader('Content-Type', getImageContentType(row.synopsis_image));
     res.setHeader('Cache-Control', 'public, max-age=3600');
     res.send(row.synopsis_image);
   });

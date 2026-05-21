@@ -7,14 +7,19 @@
     "start": "node server.js",
     "dev": "node server.js"
   },
-  "keywords": ["books", "sqlite", "database", "web"],
+  "keywords": [
+    "books",
+    "sqlite",
+    "database",
+    "web"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
-    "sqlite3": "^5.1.6",
     "body-parser": "^1.20.2",
-    "cors": "^2.8.5"
-  },
-  "devDependencies": {}
+    "cheerio": "^1.2.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "sqlite3": "^5.1.6"
+  }
 }

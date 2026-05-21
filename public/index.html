@@ -79,6 +79,8 @@
                     <p>Totale libri: <span id="total-books">0</span></p>
                     <p>Nella collezione: <span id="total-owned">0</span></p>
                     <p>Letti: <span id="total-read">0</span></p>
+                    <button id="new-book-btn" class="btn-primary" style="width: 100%; margin-top: 15px;">Nuovo libro</button>
+                    <button id="import-web-btn" class="btn-primary" style="width: 100%; margin-top: 15px;">Importa da web</button>
                     <button id="reload-btn" class="btn-secondary" style="width: 100%; margin-top: 15px;">⟳ Reload DB</button>
                     <button id="hard-reload-btn" class="btn-secondary red" style="width: 100%; margin-top: 15px;">⟳ Hard Reload</button>
                 </div>
@@ -144,6 +146,7 @@
                         <div class="detail-left-buttons">
                             <button id="back-btn" class="btn-back">← Indietro</button>
                             <button id="edit-book-btn" class="btn-edit" onclick="openEditModal()">Modifica</button>
+                            <button id="delete-book-btn" class="btn-delete">Elimina</button>
                         </div>
                         <div class="detail-nav-buttons">
                             <button id="prev-book-btn" class="detail-nav-btn prev-btn" title="Libro precedente">◀</button>
@@ -161,7 +164,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Modifica Libro</h2>
-                <button class="close-modal">&times;</button>
+                <button id="close-edit-modal" class="close-modal">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="edit-form">
@@ -248,6 +251,125 @@
             <div class="modal-footer">
                 <button id="save-btn" class="btn-primary">Salva</button>
                 <button id="cancel-btn" class="btn-secondary">Annulla</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Modal -->
+    <div id="create-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Nuovo Libro</h2>
+                <button id="close-create-modal" class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="create-form">
+                    <div class="form-group">
+                        <label for="create-number">Numero:</label>
+                        <input type="number" id="create-number" name="number" min="1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="create-title-ita">Titolo Italiano:</label>
+                        <input type="text" id="create-title-ita" name="title_ita" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="create-title-orig">Titolo Originale:</label>
+                        <input type="text" id="create-title-orig" name="title_orig">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="create-author">Autore:</label>
+                        <input type="text" id="create-author" name="author" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="create-date-pub">Data Pubblicazione:</label>
+                        <input type="date" id="create-date-pub" name="date_pub">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="create-cover-author">Autore Copertina:</label>
+                        <input type="text" id="create-cover-author" name="cover_author">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="create-collana-select">Collana:</label>
+                        <select id="create-collana-select" name="collana"></select>
+                    </div>
+
+                    <div class="form-group form-checkbox">
+                        <label for="create-use-new-collana">
+                            <input type="checkbox" id="create-use-new-collana" name="use_new_collana">
+                            Aggiungi una nuova collana
+                        </label>
+                    </div>
+
+                    <div id="new-collana-fields" class="new-collana-fields" style="display: none;">
+                        <div class="form-group">
+                            <label for="create-new-collana-name">Nome nuova collana:</label>
+                            <input type="text" id="create-new-collana-name" name="new_collana_name">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="create-new-editore-name">Editore:</label>
+                            <input type="text" id="create-new-editore-name" name="new_editore_name">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="create-cover-image">Copertina:</label>
+                        <input type="file" id="create-cover-image" name="cover_image" accept="image/*">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="create-synopsis">Sinossi:</label>
+                        <textarea id="create-synopsis" name="synopsis" rows="4"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="create-comment">Commento:</label>
+                        <textarea id="create-comment" name="comment" rows="3"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="create-stars">Valutazione (0-50):</label>
+                        <input type="number" id="create-stars" name="stars" min="0" max="50" step="5" value="0">
+                    </div>
+
+                    <div class="form-group form-checkbox">
+                        <label for="create-owned">
+                            <input type="checkbox" id="create-owned" name="owned">
+                            Nella collezione
+                        </label>
+                    </div>
+
+                    <div class="form-group form-checkbox">
+                        <label for="create-read">
+                            <input type="checkbox" id="create-read" name="read">
+                            Letto
+                        </label>
+                    </div>
+
+                    <div class="form-group form-checkbox">
+                        <label for="create-digital">
+                            <input type="checkbox" id="create-digital" name="digital">
+                            Digitale
+                        </label>
+                    </div>
+
+                    <div class="form-group form-checkbox">
+                        <label for="create-reprint">
+                            <input type="checkbox" id="create-reprint" name="reprint">
+                            Ristampa
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button id="create-save-btn" class="btn-primary">Crea</button>
+                <button id="create-cancel-btn" class="btn-secondary">Annulla</button>
             </div>
         </div>
     </div>

@@ -291,6 +291,23 @@ header h1 {
     transform: translateY(-2px);
 }
 
+.btn-delete {
+    background: #dc3545;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.95em;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-delete:hover {
+    background: #c82333;
+    transform: translateY(-2px);
+}
+
 /* Content Area */
 .content-area {
     flex: 1;
@@ -936,6 +953,14 @@ header h1 {
     justify-content: flex-end;
     padding: 20px 30px;
     border-top: 1px solid #e9ecef;
+}
+
+.new-collana-fields {
+    padding: 15px;
+    margin-bottom: 15px;
+    border: 1px dashed #cfd4da;
+    border-radius: 8px;
+    background: #f8f9fa;
 }
 
 /* Loader Overlay styles */
