@@ -1,6 +1,6 @@
 FROM node:22-bookworm-slim
 
-# Install system dependencies (build tools for sqlite3 native bindings if needed, curl for healthcheck)
+# Install system dependencies needed for compiling native modules (sqlite3)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     make \
@@ -13,8 +13,8 @@ WORKDIR /app
 # Copy package manifests first to leverage Docker layer caching
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --omit=dev || npm install --omit=dev
+# Install dependencies and build native bindings from source to avoid GLIBC mismatch with prebuilt binaries
+RUN npm install --omit=dev --build-from-source=sqlite3
 
 # Copy application source code
 COPY . .
