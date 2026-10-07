@@ -14,7 +14,7 @@ const {
 } = require('./service/calibreService');
 
 const app = express();
-const PORT = 3100;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3100;
 
 // Cache directories
 const cacheDir = path.join(__dirname, 'cache');
@@ -34,11 +34,31 @@ app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static('public'));
 
-// Database setup - read path from configuration file
+// Database setup - read path from environment variable or configuration file
 const configPath = path.join(__dirname, 'dbpath.conf');
-const dbPathRaw = fs.readFileSync(configPath, 'utf8').trim();
+let dbPathRaw = process.env.DB_PATH ? process.env.DB_PATH.trim() : '';
+
+if (!dbPathRaw) {
+  if (fs.existsSync(configPath)) {
+    dbPathRaw = fs.readFileSync(configPath, 'utf8').trim();
+  } else {
+    dbPathRaw = path.join(__dirname, 'data', 'books.db');
+  }
+}
+
 // Resolve to absolute path if relative
-const dbPath = path.isAbsolute(dbPathRaw) ? dbPathRaw : path.join(__dirname, dbPathRaw);
+let dbPath = path.isAbsolute(dbPathRaw) ? dbPathRaw : path.join(__dirname, dbPathRaw);
+
+// If the resolved path points to a directory, look for books.db inside it
+if (fs.existsSync(dbPath) && fs.statSync(dbPath).isDirectory()) {
+  dbPath = path.join(dbPath, 'books.db');
+}
+
+// Ensure the parent directory exists
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
 
 console.log('Database path:', dbPath);
 console.log('Working directory:', process.cwd());

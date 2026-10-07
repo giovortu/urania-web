@@ -7,3 +7,4 @@ npm-debug.log*
 dbpath.conf
 calibre.conf
 cache/
+.env

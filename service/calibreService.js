@@ -23,9 +23,9 @@ function loadCalibreConfig(forceReload = false) {
   }
 
   const config = {
-    calibreDir: '',
-    calibreWebDb: '',
-    calibreWebUrl: 'http://localhost:8083',
+    calibreDir: process.env.CALIBRE_DIR ? resolvePath(process.env.CALIBRE_DIR) : '',
+    calibreWebDb: process.env.CALIBRE_WEB_DB ? resolvePath(process.env.CALIBRE_WEB_DB) : '',
+    calibreWebUrl: process.env.CALIBRE_WEB_URL || 'http://localhost:8083',
     configured: false
   };
 
@@ -41,13 +41,13 @@ function loadCalibreConfig(forceReload = false) {
         const val = rest.join('=').trim();
         const upperKey = key.trim().toUpperCase();
         if (upperKey === 'CALIBRE_DIR' || upperKey === 'CALIBRE_LIBRARY_DIR' || upperKey === 'LIBRARY_DIR') {
-          config.calibreDir = resolvePath(val);
+          if (!process.env.CALIBRE_DIR) config.calibreDir = resolvePath(val);
         } else if (upperKey === 'CALIBRE_WEB_DB' || upperKey === 'APP_DB') {
-          config.calibreWebDb = resolvePath(val);
+          if (!process.env.CALIBRE_WEB_DB) config.calibreWebDb = resolvePath(val);
         } else if (upperKey === 'CALIBRE_WEB_URL' || upperKey === 'URL') {
-          config.calibreWebUrl = val;
+          if (!process.env.CALIBRE_WEB_URL) config.calibreWebUrl = val;
         }
-      } else if (!config.calibreDir) {
+      } else if (!config.calibreDir && !process.env.CALIBRE_DIR) {
         // Plain path line
         config.calibreDir = resolvePath(line);
       }

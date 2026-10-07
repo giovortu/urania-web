@@ -1,0 +1,8 @@
+node_modules
+npm-debug.log*
+.git
+.gitignore
+cache
+calibre.conf
+dbpath.conf
+.env

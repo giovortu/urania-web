@@ -1,0 +1,27 @@
+services:
+  urania-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: urania-web
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3100}:3100"
+    environment:
+      - NODE_ENV=production
+      - PORT=3100
+      - DB_PATH=/data/books.db
+      - CALIBRE_DIR=/calibre
+      - CALIBRE_WEB_DB=/calibre-web/app.db
+      - CALIBRE_WEB_URL=${CALIBRE_WEB_URL:-http://host.docker.internal:8083}
+    volumes:
+      # Cartella contenente il database SQLite books.db sul sistema host
+      - ${DB_DIR_HOST:-/home/giovortu/Documents/Projects/Urania/build/database}:/data
+      # Cache persistente per copertine e sinossi
+      - ./cache:/app/cache
+      # Libreria Calibre dell'host (in sola lettura)
+      - "${CALIBRE_DIR_HOST:-/home/giovortu/Calibre Library}:/calibre:ro"
+      # Database Calibre-Web app.db dell'host (in sola lettura)
+      - "${CALIBRE_WEB_DB_HOST:-/home/giovortu/Documents/Projects/calibre-web/app.db}:/calibre-web/app.db:ro"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
