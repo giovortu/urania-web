@@ -81,6 +81,7 @@
                     <p>Letti: <span id="total-read">0</span></p>
                     <button id="new-book-btn" class="btn-primary" style="width: 100%; margin-top: 15px;">Nuovo libro</button>
                     <button id="import-web-btn" class="btn-primary" style="width: 100%; margin-top: 15px;">Importa da web</button>
+                    <button id="import-calibre-btn" class="btn-primary" style="width: 100%; margin-top: 15px;">Importa da Calibre-Web</button>
                     <button id="reload-btn" class="btn-secondary" style="width: 100%; margin-top: 15px;">⟳ Reload DB</button>
                     <button id="hard-reload-btn" class="btn-secondary red" style="width: 100%; margin-top: 15px;">⟳ Hard Reload</button>
                 </div>
@@ -370,6 +371,145 @@
             <div class="modal-footer">
                 <button id="create-save-btn" class="btn-primary">Crea</button>
                 <button id="create-cancel-btn" class="btn-secondary">Annulla</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calibre Import Modal -->
+    <div id="calibre-modal" class="modal" style="display: none;">
+        <div class="modal-content calibre-modal-content">
+            <div class="modal-header">
+                <h2>Importa da Calibre-Web</h2>
+                <button id="close-calibre-modal" class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Search & Input Section -->
+                <div class="calibre-search-section">
+                    <div class="calibre-search-box">
+                        <input type="text" id="calibre-search-input" placeholder="Cerca titolo, autore o incolla URL / ID Calibre-Web (es. 1353)...">
+                        <button id="calibre-search-btn" class="btn-primary" type="button">Cerca</button>
+                    </div>
+                    <div id="calibre-status-msg" class="calibre-status-msg" style="display: none;"></div>
+                </div>
+
+                <!-- Results List Container -->
+                <div id="calibre-results-container" class="calibre-results-container">
+                    <div class="calibre-section-title" id="calibre-results-title">Libri recenti in Calibre:</div>
+                    <div id="calibre-results-list" class="calibre-results-list">
+                        <div class="calibre-loading">Caricamento libreria Calibre...</div>
+                    </div>
+                </div>
+
+                <!-- Selected Book Form Container -->
+                <div id="calibre-form-container" class="calibre-form-container" style="display: none;">
+                    <div class="calibre-form-toolbar">
+                        <button id="calibre-back-btn" class="btn-secondary btn-sm" type="button">← Torna all'elenco</button>
+                        <span id="calibre-badge" class="calibre-badge">Calibre-Web</span>
+                    </div>
+
+                    <div class="calibre-preview-card">
+                        <div class="calibre-preview-cover">
+                            <img id="calibre-preview-cover-img" src="" alt="Copertina">
+                        </div>
+                        <div class="calibre-preview-details">
+                            <h3 id="calibre-preview-title">Titolo</h3>
+                            <p id="calibre-preview-author" class="calibre-author-text">Autore</p>
+                            <p id="calibre-preview-meta" class="calibre-meta-text"></p>
+                        </div>
+                    </div>
+
+                    <form id="calibre-import-form">
+                        <input type="hidden" id="calibre-book-id" name="calibreId">
+
+                        <div class="form-row">
+                            <div class="form-group flex-1">
+                                <label for="calibre-number">Numero:</label>
+                                <input type="number" id="calibre-number" name="number" min="1" required>
+                            </div>
+
+                            <div class="form-group flex-2">
+                                <label for="calibre-collana-select">Collana:</label>
+                                <select id="calibre-collana-select" name="collana" required></select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="calibre-title-ita">Titolo Italiano:</label>
+                            <input type="text" id="calibre-title-ita" name="title_ita" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="calibre-title-orig">Titolo Originale:</label>
+                            <input type="text" id="calibre-title-orig" name="title_orig">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="calibre-author">Autore:</label>
+                            <input type="text" id="calibre-author" name="author" required>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group flex-1">
+                                <label for="calibre-date-pub">Data Pubblicazione:</label>
+                                <input type="date" id="calibre-date-pub" name="date_pub">
+                            </div>
+
+                            <div class="form-group flex-1">
+                                <label for="calibre-cover-author">Autore Copertina:</label>
+                                <input type="text" id="calibre-cover-author" name="cover_author">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="calibre-synopsis">Sinossi:</label>
+                            <textarea id="calibre-synopsis" name="synopsis" rows="5"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="calibre-comment">Commento:</label>
+                            <textarea id="calibre-comment" name="comment" rows="2"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="calibre-stars">Valutazione (0-50):</label>
+                            <input type="number" id="calibre-stars" name="stars" min="0" max="50" step="5" value="0">
+                        </div>
+
+                        <div class="calibre-checkboxes-grid">
+                            <div class="form-group form-checkbox">
+                                <label for="calibre-owned">
+                                    <input type="checkbox" id="calibre-owned" name="owned" checked>
+                                    Nella collezione
+                                </label>
+                            </div>
+
+                            <div class="form-group form-checkbox">
+                                <label for="calibre-digital">
+                                    <input type="checkbox" id="calibre-digital" name="digital" checked>
+                                    Digitale
+                                </label>
+                            </div>
+
+                            <div class="form-group form-checkbox">
+                                <label for="calibre-read">
+                                    <input type="checkbox" id="calibre-read" name="read">
+                                    Letto
+                                </label>
+                            </div>
+
+                            <div class="form-group form-checkbox">
+                                <label for="calibre-reprint">
+                                    <input type="checkbox" id="calibre-reprint" name="reprint">
+                                    Ristampa
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="calibre-import-submit-btn" class="btn-primary" type="button" style="display: none;">Importa Libro</button>
+                <button id="calibre-cancel-btn" class="btn-secondary" type="button">Chiudi</button>
             </div>
         </div>
     </div>

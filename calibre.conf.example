@@ -1,0 +1,11 @@
+# Calibre & Calibre-Web Configuration
+# Set paths to your Calibre library and Calibre-Web config database
+
+# Path to the Calibre Library folder (containing metadata.db and book folders)
+CALIBRE_DIR=/home/giovortu/Calibre Library
+
+# Path to Calibre-Web's app.db configuration database (optional, used for reading status & port)
+CALIBRE_WEB_DB=/home/giovortu/Documents/Projects/calibre-web/app.db
+
+# Calibre-Web URL (optional, default http://localhost:8083)
+CALIBRE_WEB_URL=http://localhost:8083

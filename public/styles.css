@@ -562,8 +562,7 @@ header h1 {
 }
 
 .badge.digital {
-    background: #fff3cd;
-    color: #856404;
+    background: transparent;
 }
 
 .badge.stars {
@@ -1608,3 +1607,256 @@ header h1 {
         min-height: 44px;
     }
 }
+
+/* ============================================
+   Calibre-Web Import Modal Styles
+   ============================================ */
+
+.calibre-modal-content {
+    max-width: 760px;
+    width: 95%;
+}
+
+.calibre-search-section {
+    margin-bottom: 20px;
+}
+
+.calibre-search-box {
+    display: flex;
+    gap: 10px;
+}
+
+.calibre-search-box input {
+    flex: 1;
+    padding: 10px 14px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 1em;
+}
+
+.calibre-search-box input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+}
+
+.calibre-status-msg {
+    margin-top: 10px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 0.9em;
+}
+
+.calibre-status-msg.error {
+    background-color: #fde8e8;
+    color: #c81e1e;
+    border: 1px solid #f8b4b4;
+}
+
+.calibre-status-msg.info {
+    background-color: #e1effe;
+    color: #1e429f;
+    border: 1px solid #b3c5ff;
+}
+
+.calibre-section-title {
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 12px;
+    font-size: 0.95em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.calibre-results-container {
+    max-height: 480px;
+    overflow-y: auto;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 15px;
+    background: #fafbfc;
+}
+
+.calibre-results-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.calibre-loading {
+    padding: 30px;
+    text-align: center;
+    color: #666;
+    font-style: italic;
+}
+
+.calibre-book-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.calibre-book-item:hover {
+    border-color: #667eea;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+    transform: translateY(-1px);
+}
+
+.calibre-book-item-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex: 1;
+    min-width: 0;
+}
+
+.calibre-book-thumb {
+    width: 44px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 4px;
+    background: #edf2f7;
+    flex-shrink: 0;
+    border: 1px solid #cbd5e1;
+}
+
+.calibre-book-meta {
+    flex: 1;
+    min-width: 0;
+}
+
+.calibre-book-title {
+    font-weight: 600;
+    color: #1e293b;
+    font-size: 1em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 2px;
+}
+
+.calibre-book-author {
+    color: #64748b;
+    font-size: 0.88em;
+    margin-bottom: 2px;
+}
+
+.calibre-book-sub {
+    color: #94a3b8;
+    font-size: 0.8em;
+    display: flex;
+    gap: 10px;
+}
+
+.calibre-book-item-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    margin-left: 12px;
+}
+
+.calibre-badge-imported {
+    background: #e2e8f0;
+    color: #64748b;
+    font-size: 0.75em;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.calibre-form-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.btn-sm {
+    padding: 6px 12px !important;
+    font-size: 0.85em !important;
+}
+
+.calibre-badge {
+    background: #e0e7ff;
+    color: #4338ca;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: 600;
+}
+
+.calibre-preview-card {
+    display: flex;
+    gap: 20px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+    align-items: center;
+}
+
+.calibre-preview-cover img {
+    width: 80px;
+    height: 115px;
+    object-fit: cover;
+    border-radius: 6px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    background: #fff;
+}
+
+.calibre-preview-details {
+    flex: 1;
+}
+
+.calibre-preview-details h3 {
+    margin: 0 0 6px 0;
+    color: #1e293b;
+    font-size: 1.2em;
+}
+
+.calibre-author-text {
+    margin: 0 0 4px 0;
+    color: #475569;
+    font-weight: 500;
+}
+
+.calibre-meta-text {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.85em;
+}
+
+.form-row {
+    display: flex;
+    gap: 15px;
+}
+
+.flex-1 {
+    flex: 1;
+}
+
+.flex-2 {
+    flex: 2;
+}
+
+.calibre-checkboxes-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    background: #f8fafc;
+    padding: 14px 18px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    margin-top: 10px;
+}
+

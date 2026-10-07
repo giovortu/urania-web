@@ -25,6 +25,16 @@ Applicazione web Node.js per gestire un database SQLite di libri. Permette di vi
 npm install
 ```
 
+3. (Opzionale) Configura il percorso di Calibre e Calibre-Web in `calibre.conf` (copiando da `calibre.conf.example`):
+
+```conf
+CALIBRE_DIR=/home/username/Calibre Library
+CALIBRE_WEB_DB=/home/username/.../calibre-web/app.db
+CALIBRE_WEB_URL=http://localhost:8083
+```
+
+*(Se omesso, l'applicazione auto-rileva la libreria Calibre e la configurazione di Calibre-Web sul sistema).*
+
 ## Utilizzo
 
 Avvia il server:
@@ -33,7 +43,7 @@ Avvia il server:
 npm start
 ```
 
-Il server sarà disponibile a `http://localhost:3000`
+Il server sarà disponibile a `http://localhost:3100`
 
 ## Struttura Progetto
 
@@ -56,6 +66,12 @@ Urania_web/
 - `GET /api/books/collana/:collana` - Ottieni libri di una collana
 - `GET /api/indexes/:bookId` - Ottieni indice/commenti di un libro
 - `PUT /api/books/:id` - Aggiorna dati di un libro
+- `POST /api/import/web` - Importa libro da URL web o URL Calibre-Web
+- `GET /api/calibre/status` - Verifica stato e percorsi Calibre / Calibre-Web
+- `GET /api/calibre/books` - Cerca o elenca libri presenti in Calibre
+- `GET /api/calibre/books/:id` - Ottieni metadati completi di un libro Calibre per l'importazione
+- `GET /api/calibre/books/:id/cover` - Immagine di copertina del libro Calibre
+- `POST /api/calibre/import` - Importa un libro da Calibre nel database Urania
 
 ## Campi Database
 

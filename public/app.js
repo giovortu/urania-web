@@ -80,6 +80,21 @@ const reloadBtn = document.getElementById('reload-btn');
 const hardReloadBtn = document.getElementById('hard-reload-btn');
 const importWebBtn = document.getElementById('import-web-btn');
 const deleteBookBtn = document.getElementById('delete-book-btn');
+const importCalibreBtn = document.getElementById('import-calibre-btn');
+const calibreModal = document.getElementById('calibre-modal');
+const closeCalibreModalBtn = document.getElementById('close-calibre-modal');
+const closeCalibreBtn = document.getElementById('calibre-cancel-btn');
+const calibreSearchInput = document.getElementById('calibre-search-input');
+const calibreSearchBtn = document.getElementById('calibre-search-btn');
+const calibreStatusMsg = document.getElementById('calibre-status-msg');
+const calibreResultsContainer = document.getElementById('calibre-results-container');
+const calibreResultsList = document.getElementById('calibre-results-list');
+const calibreResultsTitle = document.getElementById('calibre-results-title');
+const calibreFormContainer = document.getElementById('calibre-form-container');
+const calibreBackBtn = document.getElementById('calibre-back-btn');
+const calibreImportSubmitBtn = document.getElementById('calibre-import-submit-btn');
+const calibreImportForm = document.getElementById('calibre-import-form');
+const calibreCollanaSelect = document.getElementById('calibre-collana-select');
 
 // State management for localStorage
 function saveState() {
@@ -295,6 +310,35 @@ function attachEventListeners() {
     }
     if (createUseNewCollana) {
         createUseNewCollana.addEventListener('change', toggleNewCollanaFields);
+    }
+    if (importCalibreBtn) {
+        importCalibreBtn.addEventListener('click', openCalibreModal);
+    }
+    if (closeCalibreModalBtn) {
+        closeCalibreModalBtn.addEventListener('click', closeCalibreModal);
+    }
+    if (closeCalibreBtn) {
+        closeCalibreBtn.addEventListener('click', closeCalibreModal);
+    }
+    if (calibreSearchBtn) {
+        calibreSearchBtn.addEventListener('click', handleCalibreSearch);
+    }
+    if (calibreSearchInput) {
+        calibreSearchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleCalibreSearch();
+            }
+        });
+    }
+    if (calibreBackBtn) {
+        calibreBackBtn.addEventListener('click', showCalibreResults);
+    }
+    if (calibreImportSubmitBtn) {
+        calibreImportSubmitBtn.addEventListener('click', submitCalibreImport);
+    }
+    if (calibreCollanaSelect) {
+        calibreCollanaSelect.addEventListener('change', handleCalibreCollanaChange);
     }
     itemsPerPageSelect.addEventListener('change', () => {
         const oldItemsPerPage = itemsPerPage;
@@ -578,10 +622,14 @@ function displayBooksWithData(books, total, totalPages) {
 function populateCollanaOptions(collane) {
     const selectedFilterValue = collanaFilter.value;
     const selectedCreateValue = createCollanaSelect ? createCollanaSelect.value : '';
+    const selectedCalibreValue = calibreCollanaSelect ? calibreCollanaSelect.value : '';
 
     collanaFilter.innerHTML = '<option value="">Tutte le collane</option>';
     if (createCollanaSelect) {
         createCollanaSelect.innerHTML = '<option value="">Seleziona una collana</option>';
+    }
+    if (calibreCollanaSelect) {
+        calibreCollanaSelect.innerHTML = '<option value="">Seleziona una collana</option>';
     }
 
     collane.forEach(collana => {
@@ -596,6 +644,13 @@ function populateCollanaOptions(collane) {
             createOption.textContent = collana.nome;
             createCollanaSelect.appendChild(createOption);
         }
+
+        if (calibreCollanaSelect) {
+            const calibreOption = document.createElement('option');
+            calibreOption.value = collana.id;
+            calibreOption.textContent = collana.nome;
+            calibreCollanaSelect.appendChild(calibreOption);
+        }
     });
 
     if ([...collanaFilter.options].some(option => option.value === selectedFilterValue)) {
@@ -604,6 +659,10 @@ function populateCollanaOptions(collane) {
 
     if (createCollanaSelect && [...createCollanaSelect.options].some(option => option.value === selectedCreateValue)) {
         createCollanaSelect.value = selectedCreateValue;
+    }
+
+    if (calibreCollanaSelect && [...calibreCollanaSelect.options].some(option => option.value === selectedCalibreValue)) {
+        calibreCollanaSelect.value = selectedCalibreValue;
     }
 }
 
@@ -799,9 +858,9 @@ function createBookElement(book) {
     // Icona letto - sempre visibile
     badges.innerHTML += `<span class="badge badge-icon read ${!book.read ? 'inactive' : ''}" title="${book.read ? 'Letto' : 'Non letto'}">👁️</span>`;
     
-    if (book.digital) {
-        badges.innerHTML += '<span class="badge digital">Digitale</span>';
-    }
+    // Icona digitale - sempre visibile
+    badges.innerHTML += `<span class="badge badge-icon digital ${!book.digital ? 'inactive' : ''}" title="${book.digital ? 'Digitale' : 'Non digitale'}">💻</span>`;
+
     // Mostra sempre il badge stelle, anche se vuoto
     badges.innerHTML += `<span class="badge stars">${formatStars(book.stars)}</span>`;
 
@@ -1684,3 +1743,349 @@ async function showBooksList() {
     
     currentBookId = null;
 }
+
+// ============================================
+// CALIBRE-WEB IMPORT CONTROLLER
+// ============================================
+
+let currentCalibreBooksList = [];
+let currentSelectedCalibreBook = null;
+
+function setCalibreStatus(message, type = 'info') {
+    if (!calibreStatusMsg) return;
+    if (!message) {
+        calibreStatusMsg.style.display = 'none';
+        calibreStatusMsg.textContent = '';
+        calibreStatusMsg.className = 'calibre-status-msg';
+        return;
+    }
+    calibreStatusMsg.textContent = message;
+    calibreStatusMsg.className = `calibre-status-msg ${type}`;
+    calibreStatusMsg.style.display = 'block';
+}
+
+async function openCalibreModal() {
+    if (!calibreModal) return;
+
+    if (calibreSearchInput) calibreSearchInput.value = '';
+    setCalibreStatus('');
+    showCalibreResults();
+
+    if (filters.collana && calibreCollanaSelect) {
+        calibreCollanaSelect.value = filters.collana;
+    }
+
+    calibreModal.style.display = 'flex';
+    await loadCalibreBooks('');
+}
+
+function closeCalibreModal() {
+    if (!calibreModal) return;
+    calibreModal.style.display = 'none';
+    if (calibreImportForm) calibreImportForm.reset();
+    currentSelectedCalibreBook = null;
+    setCalibreStatus('');
+}
+
+function showCalibreResults() {
+    if (calibreFormContainer) calibreFormContainer.style.display = 'none';
+    if (calibreResultsContainer) calibreResultsContainer.style.display = 'block';
+    if (calibreImportSubmitBtn) calibreImportSubmitBtn.style.display = 'none';
+    setCalibreStatus('');
+}
+
+async function handleCalibreSearch() {
+    const rawQuery = calibreSearchInput ? calibreSearchInput.value.trim() : '';
+    if (!rawQuery) {
+        await loadCalibreBooks('');
+        return;
+    }
+
+    // Check if input is a Calibre-Web URL
+    const urlMatch = rawQuery.match(/\/book\/(\d+)/i);
+    if (urlMatch) {
+        const bookId = parseInt(urlMatch[1], 10);
+        await selectCalibreBook(bookId);
+        return;
+    }
+
+    // Check if input is purely digits
+    if (/^\d+$/.test(rawQuery)) {
+        await loadCalibreBooks(rawQuery);
+        return;
+    }
+
+    await loadCalibreBooks(rawQuery);
+}
+
+async function loadCalibreBooks(query = '') {
+    if (!calibreResultsList) return;
+    setCalibreStatus('');
+
+    calibreResultsList.innerHTML = '<div class="calibre-loading">Caricamento libreria Calibre...</div>';
+    if (calibreResultsTitle) {
+        calibreResultsTitle.textContent = query ? `Risultati per: "${query}"` : 'Libri recenti in Calibre:';
+    }
+
+    try {
+        const response = await fetch(`/api/calibre/books?q=${encodeURIComponent(query)}&limit=30`);
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.error || 'Impossibile connettersi alla libreria Calibre');
+        }
+
+        const books = await response.json();
+        currentCalibreBooksList = books;
+        renderCalibreResults(books);
+    } catch (err) {
+        console.error('Error loading Calibre books:', err);
+        calibreResultsList.innerHTML = `<div class="calibre-loading" style="color: #dc3545;">⚠️ ${err.message}</div>`;
+        setCalibreStatus(err.message, 'error');
+    }
+}
+
+function renderCalibreResults(books) {
+    if (!calibreResultsList) return;
+
+    if (!Array.isArray(books) || books.length === 0) {
+        calibreResultsList.innerHTML = '<div class="calibre-loading">Nessun libro trovato in Calibre per questa ricerca.</div>';
+        return;
+    }
+
+    calibreResultsList.innerHTML = '';
+
+    books.forEach(book => {
+        const item = document.createElement('div');
+        item.className = 'calibre-book-item';
+
+        const thumbSrc = book.hasCover ? `/api/calibre/books/${book.id}/cover` : '';
+        const formatsBadges = (book.formats || []).map(f => `<span class="index-type">${f}</span>`).join(' ');
+        const importedBadge = book.alreadyImported
+            ? '<span class="calibre-badge-imported">Già presente</span>'
+            : '';
+
+        item.innerHTML = `
+            <div class="calibre-book-item-left">
+                ${thumbSrc 
+                    ? `<img class="calibre-book-thumb" src="${thumbSrc}" alt="cover" loading="lazy" onerror="this.style.display='none'">` 
+                    : '<div class="calibre-book-thumb" style="display:flex;align-items:center;justify-content:center;color:#999;font-size:10px;">No Cover</div>'
+                }
+                <div class="calibre-book-meta">
+                    <div class="calibre-book-title" title="${book.title}">${book.title}</div>
+                    <div class="calibre-book-author">${book.author}</div>
+                    <div class="calibre-book-sub">
+                        ${book.pubdate ? `<span>📅 ${book.pubdate}</span>` : ''}
+                        ${book.series ? `<span>📚 ${book.series} #${book.seriesIndex}</span>` : ''}
+                        ${book.publisher ? `<span>🏢 ${book.publisher}</span>` : ''}
+                    </div>
+                </div>
+            </div>
+            <div class="calibre-book-item-right">
+                ${importedBadge}
+                ${formatsBadges}
+                <button type="button" class="btn-primary btn-sm">Seleziona</button>
+            </div>
+        `;
+
+        item.addEventListener('click', () => selectCalibreBook(book.id));
+        calibreResultsList.appendChild(item);
+    });
+}
+
+async function selectCalibreBook(bookIdOrUrl) {
+    setCalibreStatus('Estrazione metadati e copertina...', 'info');
+
+    const loaderOverlay = document.getElementById('save-loader-overlay');
+    const loaderText = loaderOverlay ? loaderOverlay.querySelector('.loader-text') : null;
+    const previousLoaderText = loaderText ? loaderText.textContent : '';
+
+    if (loaderText) loaderText.textContent = 'Caricamento dettagli da Calibre...';
+    if (loaderOverlay) loaderOverlay.style.display = 'flex';
+
+    try {
+        const preferredCollana = calibreCollanaSelect ? calibreCollanaSelect.value : (filters.collana || '');
+        const response = await fetch(`/api/calibre/books/${encodeURIComponent(bookIdOrUrl)}?collanaId=${encodeURIComponent(preferredCollana)}`);
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.error || 'Errore durante la lettura del libro da Calibre');
+        }
+
+        const data = await response.json();
+        currentSelectedCalibreBook = data;
+
+        // Populate Preview Card
+        const previewCover = document.getElementById('calibre-preview-cover-img');
+        if (previewCover) {
+            previewCover.src = `/api/calibre/books/${data.calibreId}/cover?_ts=${Date.now()}`;
+        }
+        const previewTitle = document.getElementById('calibre-preview-title');
+        if (previewTitle) previewTitle.textContent = data.title_ita;
+        const previewAuthor = document.getElementById('calibre-preview-author');
+        if (previewAuthor) previewAuthor.textContent = data.author;
+        const previewMeta = document.getElementById('calibre-preview-meta');
+        if (previewMeta) {
+            previewMeta.textContent = `ID Calibre: ${data.calibreId} | Editore: ${data.editoreNome || 'N/D'} | Data: ${data.date_pub || 'N/D'}`;
+        }
+
+        // Populate Form Fields
+        document.getElementById('calibre-book-id').value = data.calibreId;
+        document.getElementById('calibre-number').value = data.number || '';
+        document.getElementById('calibre-title-ita').value = data.title_ita || '';
+        document.getElementById('calibre-title-orig').value = data.title_orig || '';
+        document.getElementById('calibre-author').value = data.author || '';
+        document.getElementById('calibre-date-pub').value = data.date_pub || '';
+        document.getElementById('calibre-cover-author').value = data.cover_author || 'N/A';
+        document.getElementById('calibre-synopsis').value = data.synopsis || '';
+        document.getElementById('calibre-comment').value = data.comment || '';
+        document.getElementById('calibre-stars').value = data.stars || 0;
+        document.getElementById('calibre-owned').checked = data.owned !== 0;
+        document.getElementById('calibre-digital').checked = data.digital !== 0;
+        document.getElementById('calibre-read').checked = data.read !== 0;
+        document.getElementById('calibre-reprint').checked = data.reprint !== 0;
+
+        if (calibreCollanaSelect && data.collanaId) {
+            calibreCollanaSelect.value = String(data.collanaId);
+        }
+
+        // Show form view
+        if (calibreResultsContainer) calibreResultsContainer.style.display = 'none';
+        if (calibreFormContainer) calibreFormContainer.style.display = 'block';
+        if (calibreImportSubmitBtn) calibreImportSubmitBtn.style.display = 'inline-block';
+        setCalibreStatus('');
+    } catch (err) {
+        console.error('Error selecting Calibre book:', err);
+        setCalibreStatus(err.message, 'error');
+        showError(err.message);
+    } finally {
+        if (loaderText) loaderText.textContent = previousLoaderText;
+        if (loaderOverlay) loaderOverlay.style.display = 'none';
+    }
+}
+
+async function handleCalibreCollanaChange() {
+    if (!currentSelectedCalibreBook) return;
+    const collanaId = parseInt(calibreCollanaSelect.value, 10);
+    if (!Number.isInteger(collanaId) || collanaId <= 0) return;
+
+    try {
+        const response = await fetch(`/api/calibre/books/${currentSelectedCalibreBook.calibreId}?collanaId=${collanaId}`);
+        if (response.ok) {
+            const data = await response.json();
+            const numInput = document.getElementById('calibre-number');
+            if (numInput && data.number) {
+                numInput.value = data.number;
+            }
+            const titleInput = document.getElementById('calibre-title-ita');
+            if (titleInput && data.title_ita) {
+                titleInput.value = data.title_ita;
+            }
+            const authorInput = document.getElementById('calibre-author');
+            if (authorInput && data.author) {
+                authorInput.value = data.author;
+            }
+        }
+    } catch (err) {
+        console.warn('Could not re-calculate collana number suggestion:', err);
+    }
+}
+
+async function submitCalibreImport() {
+    const calibreId = parseInt(document.getElementById('calibre-book-id').value, 10);
+    const number = parseInt(document.getElementById('calibre-number').value, 10);
+    const titleIta = document.getElementById('calibre-title-ita').value.trim();
+    const titleOrig = document.getElementById('calibre-title-orig').value.trim();
+    const author = document.getElementById('calibre-author').value.trim();
+    const datePub = document.getElementById('calibre-date-pub').value || null;
+    const coverAuthor = document.getElementById('calibre-cover-author').value.trim() || 'N/A';
+    const collanaId = parseInt(calibreCollanaSelect.value, 10);
+    const synopsis = document.getElementById('calibre-synopsis').value.trim();
+    const comment = document.getElementById('calibre-comment').value.trim();
+    const stars = parseInt(document.getElementById('calibre-stars').value, 10) || 0;
+    const owned = document.getElementById('calibre-owned').checked;
+    const digital = document.getElementById('calibre-digital').checked;
+    const read = document.getElementById('calibre-read').checked;
+    const reprint = document.getElementById('calibre-reprint').checked;
+
+    if (!Number.isInteger(number) || number <= 0) {
+        showError('Inserisci un numero di collana valido (maggiore di 0)');
+        return;
+    }
+    if (!titleIta) {
+        showError('Titolo italiano obbligatorio');
+        return;
+    }
+    if (!author) {
+        showError('Autore obbligatorio');
+        return;
+    }
+    if (!Number.isInteger(collanaId) || collanaId <= 0) {
+        showError('Seleziona una collana valida');
+        return;
+    }
+
+    const payload = {
+        calibreId,
+        number,
+        title_ita: titleIta,
+        title_orig: titleOrig,
+        author,
+        date_pub: datePub,
+        cover_author: coverAuthor,
+        collanaId,
+        synopsis,
+        comment,
+        stars,
+        owned,
+        digital,
+        read,
+        reprint
+    };
+
+    const loaderOverlay = document.getElementById('save-loader-overlay');
+    const loaderText = loaderOverlay ? loaderOverlay.querySelector('.loader-text') : null;
+    const previousLoaderText = loaderText ? loaderText.textContent : '';
+
+    if (loaderText) loaderText.textContent = 'Importazione libro da Calibre-Web in corso...';
+    if (loaderOverlay) loaderOverlay.style.display = 'flex';
+
+    try {
+        const response = await fetch('/api/calibre/import', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(result.error || 'Errore durante l\'importazione da Calibre');
+        }
+
+        closeCalibreModal();
+
+        // Switch filter to the newly imported collana
+        filters.collana = String(collanaId);
+        collanaFilter.value = String(collanaId);
+        currentPage = 1;
+        pageInput.value = currentPage;
+        pageInputTop.value = currentPage;
+        saveState();
+
+        await loadBooks();
+
+        if (result.book?.id) {
+            allBooks = [result.book, ...allBooks.filter(b => b.id !== result.book.id)];
+            await showBookDetail(result.book.id);
+        }
+
+        showSuccess(`Libro importato con successo da Calibre: ${result.book?.title_ita || titleIta}`);
+    } catch (err) {
+        console.error('Error importing book from Calibre:', err);
+        showError(err.message || 'Errore durante l\'importazione');
+    } finally {
+        if (loaderText) loaderText.textContent = previousLoaderText;
+        if (loaderOverlay) loaderOverlay.style.display = 'none';
+    }
+}
+

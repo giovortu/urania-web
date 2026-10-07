@@ -6,6 +6,12 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const { parseBookFromHtml } = require('./service/htmlImportParser');
+const {
+  loadCalibreConfig,
+  searchCalibreBooks,
+  getCalibreBookDetails,
+  getCalibreBookCoverBuffer
+} = require('./service/calibreService');
 
 const app = express();
 const PORT = 3100;
@@ -1112,33 +1118,83 @@ app.post('/api/import/web', async (req, res) => {
       return;
     }
 
-    const html = await fetchRemoteText(sourceUrl);
-    const parsedBook = parseBookFromHtml(html, {
-      baseUrl: sourceUrl,
-      collanaName: collana.nome
-    });
+    let book;
+    let coverImage = Buffer.alloc(0);
+    let synopsisImage = Buffer.alloc(0);
 
-    const book = {
-      number: Number.isInteger(parsedBook.number) ? parsedBook.number : 0,
-      title_ita: parsedBook.title_ita || '',
-      title_orig: parsedBook.title_orig || parsedBook.title_ita || '',
-      author: parsedBook.author || '',
-      date_pub: parsedBook.date_pub || null,
-      cover_author: parsedBook.cover_author || 'N/A',
-      synopsis: parsedBook.synopsis || '',
-      owned: 0,
-      stars: 0,
-      comment: '',
-      reprint: 0,
-      read: 0,
-      digital: 0,
-      collana: collana.id,
-      editore: collana.editore,
-      index: parsedBook.index || []
-    };
+    const calibreMatch = sourceUrl.match(/\/book\/(\d+)/i);
+    if (calibreMatch) {
+      const calibreBookId = parseInt(calibreMatch[1], 10);
+      const calibreDetails = await getCalibreBookDetails(calibreBookId, db, collana.id);
+
+      book = {
+        number: calibreDetails.number,
+        title_ita: calibreDetails.title_ita,
+        title_orig: calibreDetails.title_orig,
+        author: calibreDetails.author,
+        date_pub: calibreDetails.date_pub,
+        cover_author: calibreDetails.cover_author,
+        synopsis: calibreDetails.synopsis,
+        owned: 1,
+        stars: 0,
+        comment: '',
+        reprint: 0,
+        read: calibreDetails.read,
+        digital: 1,
+        collana: collana.id,
+        editore: collana.editore,
+        index: calibreDetails.index || []
+      };
+
+      const fileCover = await getCalibreBookCoverBuffer(calibreDetails.calibreId);
+      if (fileCover && fileCover.length > 0) {
+        coverImage = fileCover;
+      }
+    } else {
+      const html = await fetchRemoteText(sourceUrl);
+      const parsedBook = parseBookFromHtml(html, {
+        baseUrl: sourceUrl,
+        collanaName: collana.nome
+      });
+
+      book = {
+        number: Number.isInteger(parsedBook.number) ? parsedBook.number : 0,
+        title_ita: parsedBook.title_ita || '',
+        title_orig: parsedBook.title_orig || parsedBook.title_ita || '',
+        author: parsedBook.author || '',
+        date_pub: parsedBook.date_pub || null,
+        cover_author: parsedBook.cover_author || 'N/A',
+        synopsis: parsedBook.synopsis || '',
+        owned: 0,
+        stars: 0,
+        comment: '',
+        reprint: 0,
+        read: 0,
+        digital: 0,
+        collana: collana.id,
+        editore: collana.editore,
+        index: parsedBook.index || []
+      };
+
+      if (parsedBook.coverImageUrl) {
+        try {
+          coverImage = await fetchRemoteBuffer(parsedBook.coverImageUrl);
+        } catch (error) {
+          console.warn('Cover download failed:', error.message);
+        }
+      }
+
+      if (!book.synopsis && parsedBook.synopsisImageUrl) {
+        try {
+          synopsisImage = await fetchRemoteBuffer(parsedBook.synopsisImageUrl);
+        } catch (error) {
+          console.warn('Synopsis image download failed:', error.message);
+        }
+      }
+    }
 
     if (!book.title_ita || !book.author) {
-      res.status(422).json({ error: 'Parsing incompleto: titolo o autore non trovati nella pagina HTML' });
+      res.status(422).json({ error: 'Parsing incompleto: titolo o autore non trovati' });
       return;
     }
 
@@ -1150,24 +1206,6 @@ app.post('/api/import/web', async (req, res) => {
     if (existingBook) {
       res.status(409).json({ error: 'Il libro esiste gia in questa collana', id: existingBook.id });
       return;
-    }
-
-    let coverImage = Buffer.alloc(0);
-    if (parsedBook.coverImageUrl) {
-      try {
-        coverImage = await fetchRemoteBuffer(parsedBook.coverImageUrl);
-      } catch (error) {
-        console.warn('Cover download failed:', error.message);
-      }
-    }
-
-    let synopsisImage = Buffer.alloc(0);
-    if (!book.synopsis && parsedBook.synopsisImageUrl) {
-      try {
-        synopsisImage = await fetchRemoteBuffer(parsedBook.synopsisImageUrl);
-      } catch (error) {
-        console.warn('Synopsis image download failed:', error.message);
-      }
     }
 
     const coverHash = coverImage.length > 0 ? getImageHash(coverImage) : '';
@@ -1229,6 +1267,235 @@ app.post('/api/import/web', async (req, res) => {
   } catch (error) {
     console.error('Error importing book from web:', error);
     res.status(500).json({ error: 'Errore durante l\'importazione dal web' });
+  }
+});
+
+// ============================================
+// CALIBRE & CALIBRE-WEB API ROUTES
+// ============================================
+
+app.get('/api/calibre/status', (req, res) => {
+  try {
+    const config = loadCalibreConfig(true);
+    res.json(config);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/calibre/books', async (req, res) => {
+  try {
+    const query = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+    const limit = parseInt(req.query.limit, 10) || 30;
+    const books = await searchCalibreBooks(query, limit, db);
+    res.json(books);
+  } catch (error) {
+    console.error('Error searching Calibre books:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/calibre/books/:id', async (req, res) => {
+  try {
+    const preferredCollanaId = req.query.collanaId ? parseInt(req.query.collanaId, 10) : null;
+    const details = await getCalibreBookDetails(req.params.id, db, preferredCollanaId);
+    res.json(details);
+  } catch (error) {
+    console.error('Error getting Calibre book details:', error);
+    res.status(404).json({ error: error.message });
+  }
+});
+
+app.get('/api/calibre/books/:id/cover', async (req, res) => {
+  try {
+    const bookId = parseInt(req.params.id, 10);
+    const coverBuffer = await getCalibreBookCoverBuffer(bookId);
+    if (!coverBuffer || coverBuffer.length === 0) {
+      res.status(404).send('Cover not found');
+      return;
+    }
+    const contentType = getImageContentType(coverBuffer);
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.send(coverBuffer);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/calibre/import', async (req, res) => {
+  const payload = req.body || {};
+  let bookId = payload.calibreId;
+  if (typeof bookId === 'string') {
+    const match = bookId.match(/\/book\/(\d+)/i) || bookId.match(/(\d+)/);
+    if (match) bookId = parseInt(match[1], 10);
+  }
+
+  if (!Number.isInteger(bookId) || bookId <= 0) {
+    res.status(400).json({ error: 'ID Calibre mancante o non valido' });
+    return;
+  }
+
+  let transactionStarted = false;
+
+  try {
+    // Fetch full metadata for defaults
+    const details = await getCalibreBookDetails(bookId, db, payload.collanaId ? parseInt(payload.collanaId, 10) : null);
+
+    const number = Number.isInteger(parseInt(payload.number, 10)) ? parseInt(payload.number, 10) : details.number;
+    const titleIta = (typeof payload.title_ita === 'string' && payload.title_ita.trim()) ? payload.title_ita.trim() : details.title_ita;
+    const titleOrig = (typeof payload.title_orig === 'string' && payload.title_orig.trim()) ? payload.title_orig.trim() : details.title_orig;
+    const author = (typeof payload.author === 'string' && payload.author.trim()) ? payload.author.trim() : details.author;
+    const datePub = payload.date_pub ? payload.date_pub : details.date_pub;
+    const coverAuthor = (typeof payload.cover_author === 'string' && payload.cover_author.trim()) ? payload.cover_author.trim() : details.cover_author;
+    const synopsis = typeof payload.synopsis === 'string' ? payload.synopsis.trim() : details.synopsis;
+    const comment = typeof payload.comment === 'string' ? payload.comment.trim() : (details.comment || '');
+    const stars = Number.isFinite(parseInt(payload.stars, 10)) ? parseInt(payload.stars, 10) : 0;
+    const owned = payload.owned !== undefined ? (payload.owned ? 1 : 0) : 1;
+    const read = payload.read !== undefined ? (payload.read ? 1 : 0) : details.read;
+    const digital = payload.digital !== undefined ? (payload.digital ? 1 : 0) : 1;
+    const reprint = payload.reprint !== undefined ? (payload.reprint ? 1 : 0) : 0;
+
+    if (!Number.isInteger(number) || number <= 0) {
+      res.status(400).json({ error: 'Numero collana obbligatorio e maggiore di 0' });
+      return;
+    }
+
+    if (!titleIta) {
+      res.status(400).json({ error: 'Titolo italiano obbligatorio' });
+      return;
+    }
+
+    if (!author) {
+      res.status(400).json({ error: 'Autore obbligatorio' });
+      return;
+    }
+
+    let collanaId = parseInt(payload.collanaId, 10);
+    if (!Number.isInteger(collanaId) || collanaId <= 0) {
+      collanaId = details.collanaId;
+    }
+
+    if (!Number.isInteger(collanaId) || collanaId <= 0) {
+      res.status(400).json({ error: 'Seleziona una collana valida' });
+      return;
+    }
+
+    await dbRun('BEGIN TRANSACTION');
+    transactionStarted = true;
+
+    const collanaRow = await dbGet('SELECT id, editore FROM collane WHERE id = ?', [collanaId]);
+    if (!collanaRow) {
+      const error = new Error('Collana non trovata');
+      error.statusCode = 404;
+      throw error;
+    }
+    const editoreId = collanaRow.editore;
+
+    const existingBook = await dbGet(
+      'SELECT id FROM books WHERE LOWER(title_ita) = LOWER(?) AND LOWER(author) = LOWER(?) AND collana = ?',
+      [titleIta, author, collanaId]
+    );
+
+    if (existingBook) {
+      const error = new Error('Il libro esiste già in questa collana');
+      error.statusCode = 409;
+      error.bookId = existingBook.id;
+      throw error;
+    }
+
+    // Cover image
+    let coverImage = Buffer.alloc(0);
+    if (payload.coverImage) {
+      coverImage = parseBase64Image(payload.coverImage);
+    } else {
+      const fileCover = await getCalibreBookCoverBuffer(bookId);
+      if (fileCover && fileCover.length > 0) {
+        coverImage = fileCover;
+      }
+    }
+
+    const coverHash = coverImage.length > 0 ? getImageHash(coverImage) : '';
+    const synopsisImage = Buffer.alloc(0);
+    const synopsisHash = '';
+
+    const insertResult = await dbRun(
+      `INSERT INTO books (
+        number, title_ita, title_orig, author, date_pub, cover_author, cover_image,
+        synopsis, synopsis_image, owned, stars, comment, reprint, read, digital,
+        cover_hash, synopsis_hash, editore, collana
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        number,
+        titleIta,
+        titleOrig,
+        author,
+        datePub,
+        coverAuthor,
+        coverImage,
+        synopsis,
+        synopsisImage,
+        owned,
+        stars,
+        comment,
+        reprint,
+        read,
+        digital,
+        coverHash,
+        synopsisHash,
+        editoreId,
+        collanaId
+      ]
+    );
+
+    const newBookId = insertResult.lastID;
+
+    // Index entries
+    if (Array.isArray(details.index)) {
+      for (const idx of details.index) {
+        if (idx && (idx.title || idx.author)) {
+          await dbRun('INSERT INTO indexes (id, title, author) VALUES (?, ?, ?)', [newBookId, idx.title || '', idx.author || '']);
+        }
+      }
+    }
+
+    await dbRun('COMMIT');
+    transactionStarted = false;
+
+    clearBookCache(newBookId);
+    if (coverImage.length > 0) {
+      saveCacheImage(newBookId, 'cover', coverImage);
+    }
+
+    const importedBook = await dbGet(
+      `SELECT b.*, c.nome AS collanaNome, e.nome AS editoreNome
+       FROM books b
+       LEFT JOIN collane c ON b.collana = c.id
+       LEFT JOIN editori e ON b.editore = e.id
+       WHERE b.id = ?`,
+      [newBookId]
+    );
+
+    res.status(201).json({
+      message: 'Libro importato con successo da Calibre-Web',
+      book: importedBook
+    });
+  } catch (error) {
+    if (transactionStarted) {
+      try {
+        await dbRun('ROLLBACK');
+      } catch (rbErr) {
+        console.error('Rollback failed:', rbErr);
+      }
+    }
+
+    if (error.statusCode === 409) {
+      res.status(409).json({ error: error.message, id: error.bookId });
+      return;
+    }
+
+    console.error('Error importing from Calibre:', error);
+    res.status(error.statusCode || 500).json({ error: error.message || 'Errore durante l\'importazione da Calibre' });
   }
 });
 
